@@ -1,12 +1,14 @@
-package uni.bsc.baproj;
+package uni.bsc.ba_seminar;
 
 import java.util.Collection;
 
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Polygon;
 
 public class Boid {
@@ -20,7 +22,8 @@ public class Boid {
 	public static DoubleProperty maxVel = new SimpleDoubleProperty(5.0), 
 			maxAccel = new SimpleDoubleProperty(0.1);
 	
-	public static Rectangle2D area = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
+	public static Rectangle2D borderArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0), 
+			finalArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
 	
 	Group visual;
 	Polygon polygon;
@@ -94,20 +97,20 @@ public class Boid {
 		}
 		
 		Vec border = new Vec();
-		if(pos.x < area.getMinX()+seperationRadius.get()) {
+		if(pos.x < borderArea.getMinX()+seperationRadius.get()) {
 			// left
-			border.x = area.getMinX()+seperationRadius.get() - pos.x;
-		} else if (pos.x > area.getMaxX()-seperationRadius.get()) {
+			border.x = borderArea.getMinX()+seperationRadius.get() - pos.x;
+		} else if (pos.x > borderArea.getMaxX()-seperationRadius.get()) {
 			// Right
-			border.x = area.getMaxX()-seperationRadius.get() - pos.x;
+			border.x = borderArea.getMaxX()-seperationRadius.get() - pos.x;
 		}
 		
-		if(pos.y < area.getMinY()+seperationRadius.get()) {
+		if(pos.y < borderArea.getMinY()+seperationRadius.get()) {
 			// left
-			border.y = area.getMinY()+seperationRadius.get() - pos.y;
-		} else if (pos.y > area.getMaxY()-seperationRadius.get()) {
+			border.y = borderArea.getMinY()+seperationRadius.get() - pos.y;
+		} else if (pos.y > borderArea.getMaxY()-seperationRadius.get()) {
 			// Right
-			border.y = area.getMaxY()-seperationRadius.get() - pos.y;
+			border.y = borderArea.getMaxY()-seperationRadius.get() - pos.y;
 		}
 		border = border.mult(3.0);
 		
@@ -130,12 +133,21 @@ public class Boid {
 		acceleration = new Vec();
 		// Scale Vel relative to FPS
 		pos = pos.add(vel.mult(velScale.get()*timeFactor));
-		position();
+		//position();
 	}
 	
+	public void recolor(Paint fill) {
+		polygon.setFill(fill);
+	}
 	
 	public void position() {
-		visual.relocate(pos.x,pos.y);
-		visual.setRotate(Math.toDegrees(Math.atan2(vel.y, vel.x)));
+		if(!finalArea.contains(new Point2D(pos.x,pos.y))) {
+			visual.setOpacity(0.5);
+		} else {
+			visual.setOpacity(1.0);
+			visual.relocate(pos.x,pos.y);
+			visual.setRotate(Math.toDegrees(Math.atan2(vel.y, vel.x)));
+			
+		}
 	}
 }

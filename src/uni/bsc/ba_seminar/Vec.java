@@ -1,4 +1,4 @@
-package uni.bsc.baproj;
+package uni.bsc.ba_seminar;
 
 /**
  * Utility class for 2D Vector
