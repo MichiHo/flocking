@@ -73,6 +73,7 @@ public class MainWindow extends Application {
 	
 	private Circle measureDot = new Circle(0.0, 0.0, 3.0, Color.BLACK);
 	private TrailRenderer measureTrail = new TrailRenderer(300);
+	private TrailRenderer positionTrail = new TrailRenderer(300);
 	
 	// For simulating lower-frequency measuring
 	private int measureFrameCount = 0;
@@ -89,7 +90,7 @@ public class MainWindow extends Application {
 		
 		cores = Runtime.getRuntime().availableProcessors();
 		System.out.println("cores:"+cores);
-		primaryStage.setResizable(false);
+		primaryStage.setResizable(true);
 		primaryStage.setHeight(height);
 		primaryStage.setWidth(width);
 		
@@ -98,7 +99,7 @@ public class MainWindow extends Application {
 		});
 		attractorEight.offset = new Vec(height/2.0,height/2.0);
 		attractorEight.scale.set(100.0);
-		attractorEight.speed.set(0.02);
+		attractorEight.speed.bind(data.attractorSpeedProperty());
 		data.attractorForAllProperty().addListener((ob,o,n)->{
 			for(Boid b:boids) b.setAttractor(n?attractorEight:null);
 			if(!n && boids.size()>0)
@@ -123,13 +124,29 @@ public class MainWindow extends Application {
 			File f = new File("profiles/"+confChooser.getValue()+".json");
 			try {
 				f.createNewFile();
-				mapper.writeValue(f, data);
+				mapper.writerWithDefaultPrettyPrinter().writeValue(f, data);
+				//mapper.writeValue(f, data);
 				if(!confChooser.getItems().contains(confChooser.getValue()))
 					confChooser.getItems().add(confChooser.getValue());
 				
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
+		});
+		
+		Button btnDelConf = new Button("Delete");
+		menuPane.add(btnDelConf, 1, menuRow);
+		btnDelConf.setOnAction(e->{
+			String choice = confChooser.getValue();
+			if(choice.isEmpty()) return;
+			if(confChooser.getItems().contains(choice)) {
+				confChooser.getItems().remove(choice);
+			}
+			File f = new File("profiles/"+choice+".json");
+			if(f.exists()) {
+				f.delete();
+			}
+			confChooser.setValue("");
 		});
 		
 		confChooser = new ComboBox<>(configurations);
@@ -148,7 +165,7 @@ public class MainWindow extends Application {
 				}
 			}
 		});
-		menuPane.add(confChooser, 1, menuRow++,3,1);
+		menuPane.add(confChooser, 2, menuRow++,2,1);
 		
 		menuPane.add(new Separator(), 0, menuRow++,4,1);
 		
@@ -264,7 +281,14 @@ public class MainWindow extends Application {
 		CheckBox btnAttForAll = new CheckBox("Apply Attractor to all Boids");
 		btnAttForAll.selectedProperty().bindBidirectional(data.attractorForAllProperty());
 		flockingMenu.add(btnAttForAll, 0, row++);
-				
+		
+		flockingMenu.add(new Label("Attractor Speed:"), 0, row++);
+		Slider slAttSpeed = new Slider(0.0, 1.0, 0.0);
+		slAttSpeed.valueProperty().bindBidirectional(data.attractorSpeedProperty());
+		slAttSpeed.setShowTickMarks(true);
+		slAttSpeed.setMajorTickUnit(0.1);
+		slAttSpeed.setShowTickLabels(true);
+		flockingMenu.add(slAttSpeed, 0, row++);
 		
 		GridPane filterMenu = new GridPane();
 		filterMenu.setBackground(new Background(new BackgroundFill(
@@ -284,17 +308,23 @@ public class MainWindow extends Application {
 		slFramesPerMeasure.setShowTickLabels(true);
 		filterMenu.add(slFramesPerMeasure, 0, row++);
 		
-		filterMenu.add(new Label("trail length:"), 0, row++);
+		filterMenu.add(new Label("Trail Length:"), 0, row++);
 		Slider slTrailLength = new Slider(1,500,1);
 		slTrailLength.valueProperty().bindBidirectional(data.globalTrailLengthProperty());
 		slTrailLength.setShowTickMarks(true);
 		slTrailLength.setShowTickLabels(true);
 		filterMenu.add(slTrailLength, 0, row++);
 
-		CheckBox btnShowMeasureTrail = new CheckBox("Show measurement");
-		measureDot.visibleProperty().bind(btnShowMeasureTrail.selectedProperty());
-		measureTrail.visibleProperty().bind(btnShowMeasureTrail.selectedProperty());
+		CheckBox btnShowMeasureTrail = new CheckBox("Measure Trail");
+		btnShowMeasureTrail.selectedProperty().bindBidirectional(data.showMeasureTrailProperty());
+		measureDot.visibleProperty().bind(data.showMeasureTrailProperty());
+		measureTrail.visibleProperty().bind(data.showMeasureTrailProperty());
 		filterMenu.add(btnShowMeasureTrail, 0, row++);
+		
+		CheckBox btnShowPosTrail = new CheckBox("Position Trail");
+		btnShowPosTrail.selectedProperty().bindBidirectional(data.showPositionTrailProperty());
+		positionTrail.visibleProperty().bind(data.showPositionTrailProperty());
+		filterMenu.add(btnShowPosTrail, 0, row++);
 		
 		filterMenu.add(new Separator(), 0, row++);
 		CheckBox ghactive = new CheckBox("GH FILTER");
@@ -337,7 +367,7 @@ public class MainWindow extends Application {
 		canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, e -> {
 			addBoid(e.getX(), e.getY());
 		});
-		
+		canvas.addEventHandler(MouseEvent.MOUSE_CLICKED, e->addBoid(e.getX(),e.getY()));
 		
 		boids = new ArrayList<>();
 		
@@ -348,9 +378,12 @@ public class MainWindow extends Application {
 		filterVisuals.getChildren().add(ghfilter.getVisual());
 		ghfilter.bindTrailLength(data.globalTrailLengthProperty());
 		measureTrail.setStroke(new Color(0.0, 0.0, 0.0, 0.5));
-		measureTrail.length.bind(data.globalTrailLengthProperty());
+		measureTrail.lengthProperty().bind(data.globalTrailLengthProperty());
 		filterVisuals.getChildren().add(measureDot);
 		filterVisuals.getChildren().add(measureTrail);
+		positionTrail.setStroke(Color.GREEN);
+		positionTrail.lengthProperty().bind(data.globalTrailLengthProperty());
+		filterVisuals.getChildren().add(positionTrail);
 		filterVisuals.getChildren().add(attractorEight.getVisual()); 	
 		canvasStack.getChildren().add(filterVisuals);
 		root.setCenter(canvasStack);
@@ -458,6 +491,7 @@ public class MainWindow extends Application {
 			
 		}
 		if(boids.size()>0) {
+			positionTrail.push(boids.get(0).getPos());
 			if(measureFrameCount<data.framesPerMeasureProperty().get()) {
 				measureFrameCount++;
 				measureTimeFactorAccum+= deltaTime;

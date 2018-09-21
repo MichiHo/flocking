@@ -1,0 +1,23 @@
+{
+  "attractorForAll" : false,
+  "attractorSpeed" : 0.1359375,
+  "border" : 60.0,
+  "velScale" : 1.0,
+  "maxVel" : 5.0,
+  "maxAccel" : 0.1546328125,
+  "seperationRadius" : 20.0,
+  "radius" : 50.0,
+  "weightSeperation" : 1.3671875,
+  "weightCohesion" : 0.3515625,
+  "weightAlignment" : 0.5546875,
+  "weightBorder" : 1.59375,
+  "weightAttractor" : 1.2578125,
+  "noise" : 50.0,
+  "framesPerMeasure" : 18,
+  "gh_active" : true,
+  "gh_g" : 0.459375,
+  "gh_h" : 0.052734375,
+  "globalTrailLength" : 44,
+  "showMeasureTrail" : false,
+  "showPositionTrail" : true
+}

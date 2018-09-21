@@ -83,7 +83,7 @@ public class GHFilter {
 	}
 	
 	public void bindTrailLength(ObservableValue<? extends Number> obs) {
-		trail.length.bind(obs);
+		trail.lengthProperty().bind(obs);
 	}
 	
 	public Group getVisual() {

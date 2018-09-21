@@ -25,7 +25,7 @@ public class Attractor {
 	}
 	
 	public void timeStep(double deltaTime) {
-		t = (t+deltaTime*speed.get())%period;
+		t = (t+deltaTime*speed.get()*0.09)%period;
 		Vec v = position();
 		visual.relocate(v.x, v.y);
 	}

@@ -9,13 +9,16 @@ import javafx.beans.property.SimpleIntegerProperty;
 
 
 public class DataModel {
-	private DoubleProperty noise = new SimpleDoubleProperty(0.0);
-	private IntegerProperty globalTrailLength = new SimpleIntegerProperty(300);
-	private DoubleProperty border = new SimpleDoubleProperty(60.0);
-	private IntegerProperty framesPerMeasure = new SimpleIntegerProperty(1);
-	private BooleanProperty attractorForAll = new SimpleBooleanProperty(false);
 	
+	// Boid Movement
+	private BooleanProperty attractorForAll = new SimpleBooleanProperty(false);
+	private DoubleProperty attractorSpeed = new SimpleDoubleProperty(0.3);
+	private DoubleProperty border = new SimpleDoubleProperty(60.0);
 	private DoubleProperty velScale = new SimpleDoubleProperty(1.0);
+	private DoubleProperty maxVel = new SimpleDoubleProperty(5.0); 
+	private DoubleProperty maxAccel = new SimpleDoubleProperty(0.1);
+	
+	// Flocking Parameters
 	private DoubleProperty seperationRadius = new SimpleDoubleProperty(20.0);
 	private DoubleProperty radius = new SimpleDoubleProperty(50.0);
 	private DoubleProperty weightSeperation = new SimpleDoubleProperty(1.5);
@@ -23,13 +26,20 @@ public class DataModel {
 	private DoubleProperty weightAlignment = new SimpleDoubleProperty(1.0);
 	private DoubleProperty weightBorder = new SimpleDoubleProperty(2.0);
 	private DoubleProperty weightAttractor = new SimpleDoubleProperty(0.0);
-	private DoubleProperty maxVel = new SimpleDoubleProperty(5.0); 
-	private DoubleProperty maxAccel = new SimpleDoubleProperty(0.1);
 	
+	// Measure-Simulation
+	private DoubleProperty noise = new SimpleDoubleProperty(0.0);
+	private IntegerProperty framesPerMeasure = new SimpleIntegerProperty(1);
+	
+	// G-H-Filter
 	private BooleanProperty gh_active = new SimpleBooleanProperty(true);
 	private DoubleProperty gh_g = new SimpleDoubleProperty(0.1);
 	private DoubleProperty gh_h = new SimpleDoubleProperty(0.0);
 	
+	// Visuals
+	private IntegerProperty globalTrailLength = new SimpleIntegerProperty(300);
+	private BooleanProperty showMeasureTrail = new SimpleBooleanProperty(false);
+	private BooleanProperty showPositionTrail = new SimpleBooleanProperty(false);
 	
 	public final DoubleProperty noiseProperty() {
 		return this.noise;
@@ -283,6 +293,51 @@ public class DataModel {
 	public final void setGh_h(final double gh_h) {
 		this.gh_hProperty().set(gh_h);
 	}
+
+	public final DoubleProperty attractorSpeedProperty() {
+		return this.attractorSpeed;
+	}
+	
+
+	public final double getAttractorSpeed() {
+		return this.attractorSpeedProperty().get();
+	}
+	
+
+	public final void setAttractorSpeed(final double attractorSpeed) {
+		this.attractorSpeedProperty().set(attractorSpeed);
+	}
+
+	public final BooleanProperty showMeasureTrailProperty() {
+		return this.showMeasureTrail;
+	}
+	
+
+	public final boolean isShowMeasureTrail() {
+		return this.showMeasureTrailProperty().get();
+	}
+	
+
+	public final void setShowMeasureTrail(final boolean showMeasureTrail) {
+		this.showMeasureTrailProperty().set(showMeasureTrail);
+	}
+	
+
+	public final BooleanProperty showPositionTrailProperty() {
+		return this.showPositionTrail;
+	}
+	
+
+	public final boolean isShowPositionTrail() {
+		return this.showPositionTrailProperty().get();
+	}
+	
+
+	public final void setShowPositionTrail(final boolean showPositionTrail) {
+		this.showPositionTrailProperty().set(showPositionTrail);
+	}
+	
+	
 	
 	
 	
