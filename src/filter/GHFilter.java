@@ -1,6 +1,7 @@
 package filter;
 
 import java.util.List;
+import java.util.Observable;
 import java.util.Vector;
 
 import javafx.beans.property.BooleanProperty;
@@ -9,6 +10,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -54,11 +56,15 @@ public class GHFilter {
 		Vector<Double> newX = new Vector<>(dimension);
 		Vector<Double> newV = new Vector<>(dimension);
 		
-		double residual;
+		double residual, x_k, v_k;
 		for(int dim = 0; dim < dimension; ++dim) {
-			residual = measures.get(dim) - x.get(dim);
-			newX.add(x.get(dim) + timeFactor*v.get(dim) + g.get()*residual);
-			newV.add(v.get(dim) + h.get()*residual/timeFactor);
+			x_k = x.get(dim) + timeFactor*v.get(dim);
+			v_k = v.get(dim);
+			
+			residual = measures.get(dim) - x_k;
+
+			newX.add(x_k + g.get()*residual);
+			newV.add(v_k + h.get()*residual/timeFactor);
 		}
 		// Update 2D Visual
 		dot.setCenterX(newX.get(0));
@@ -76,6 +82,10 @@ public class GHFilter {
 			
 		}
 		
+	}
+	
+	public void bindTrailLength(ObservableValue<? extends Number> obs) {
+		trail.length.bind(obs);
 	}
 	
 	public Group getVisual() {

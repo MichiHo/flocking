@@ -53,6 +53,7 @@ public class MainWindow extends Application {
 	private Label fpsLabel, boidsLabel;
 	private BooleanProperty paused = new SimpleBooleanProperty(true);
 	private DoubleProperty noise = new SimpleDoubleProperty(0.0);
+	private IntegerProperty globalTrailLength = new SimpleIntegerProperty(300);
 	private Pane canvas;
 	private DoubleProperty border = new SimpleDoubleProperty(60.0);
 	private int cores;
@@ -209,6 +210,19 @@ public class MainWindow extends Application {
 		slFramesPerMeasure.setShowTickLabels(true);
 		filterMenu.add(slFramesPerMeasure, 0, row++);
 		
+		filterMenu.add(new Label("trail length:"), 0, row++);
+		Slider slTrailLength = new Slider(1,500,1);
+		slTrailLength.valueProperty().bindBidirectional(globalTrailLength);
+		slTrailLength.setShowTickMarks(true);
+		slTrailLength.setShowTickLabels(true);
+		filterMenu.add(slTrailLength, 0, row++);
+
+		CheckBox btnShowMeasureTrail = new CheckBox("Show measurement");
+		measureDot.visibleProperty().bind(btnShowMeasureTrail.selectedProperty());
+		measureTrail.visibleProperty().bind(btnShowMeasureTrail.selectedProperty());
+		filterMenu.add(btnShowMeasureTrail, 0, row++);
+		
+		filterMenu.add(new Separator(), 0, row++);
 		CheckBox ghactive = new CheckBox("GH FILTER");
 		ghactive.selectedProperty().bindBidirectional(ghfilter.active);
 		filterMenu.add(ghactive, 0, row++);
@@ -258,8 +272,10 @@ public class MainWindow extends Application {
 		Pane filterVisuals = new Pane();
 		filterVisuals.setPickOnBounds(false);
 		filterVisuals.getChildren().add(ghfilter.getVisual());
-		filterVisuals.getChildren().add(measureDot);
+		ghfilter.bindTrailLength(globalTrailLength);
 		measureTrail.setStroke(new Color(0.0, 0.0, 0.0, 0.5));
+		measureTrail.length.bind(globalTrailLength);
+		filterVisuals.getChildren().add(measureDot);
 		filterVisuals.getChildren().add(measureTrail);
 		canvasStack.getChildren().add(filterVisuals);
 		root.setCenter(canvasStack);
@@ -277,7 +293,6 @@ public class MainWindow extends Application {
 		canvas.getChildren().add(b.getVisual());
 		b.position();
 		boidsLabel.setText("Boids: "+boids.size());
-		System.out.println("n ("+x+"|"+y+")");
 	}
 	
 	public void startAnimation() {
@@ -372,6 +387,7 @@ public class MainWindow extends Application {
 				
 				boids.get(0).getVisual().setScaleX(2.0);
 				boids.get(0).getVisual().setScaleY(2.0);
+				boids.get(0).recolor(Color.BLUE);
 				Vector<Double> measure = new Vector<Double>();
 				measure.add(boids.get(0).pos.x + noise.get()*(Math.random()-0.5));
 				measure.add(boids.get(0).pos.y + noise.get()*(Math.random()-0.5));

@@ -2,6 +2,8 @@ package filter;
 
 import java.util.Vector;
 
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -9,20 +11,25 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.Polyline;
 import uni.bsc.ba_seminar.Vec;
 
-public class TrailRenderer extends Group {
-	private int index = 0, length;
+public class TrailRenderer extends Group{
+	private int index = 0;
+	public IntegerProperty length = new SimpleIntegerProperty(0);
 	private double width = 1.0;
 	private Color stroke = Color.BLACK;
 	
 	private Vector<Vec> trail;
 	
 	public TrailRenderer(int length) {
-		this.length = length;
+		this.length.set(length);
 		trail = new Vector<>(length);
 		for(int i = 0; i < length; ++i) {
 			trail.add(new Vec(0.0,0.0));
 		}
-		
+		this.length.addListener((ob,o,n)-> {
+			for(int i = trail.size(); i < n.intValue(); ++i) {
+				trail.add(new Vec());
+			}
+		});
 	}
 	
 	public void setStroke(Color stroke) {
@@ -35,9 +42,11 @@ public class TrailRenderer extends Group {
 	}
 	
 	
+	
+	
 	private void redraw() {
 		getChildren().clear();
-		
+		int length = this.length.get();
 		for(int i = 0; i < length-1; ++i) {
 			Line line = new Line(
 					trail.get((i+index)%length).x,
@@ -53,7 +62,7 @@ public class TrailRenderer extends Group {
 	
 	public void push(double x, double y) {
 		trail.set(index, new Vec(x,y));
-		index = (index+1)%length;
+		index = (index+1)%length.get();
 		redraw();
 	}
 }
