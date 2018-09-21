@@ -2,6 +2,7 @@ package uni.bsc.ba_seminar;
 
 import java.util.Collection;
 
+import filter.Attractor;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Point2D;
@@ -19,6 +20,7 @@ public class Boid {
 	public static DoubleProperty weightCohesion = new SimpleDoubleProperty(1.0);
 	public static DoubleProperty weightAlignment = new SimpleDoubleProperty(1.0);
 	public static DoubleProperty weightBorder = new SimpleDoubleProperty(2.0);
+	public static DoubleProperty weightAttractor = new SimpleDoubleProperty(0.0);
 	public static DoubleProperty maxVel = new SimpleDoubleProperty(5.0), 
 			maxAccel = new SimpleDoubleProperty(0.1);
 	
@@ -27,6 +29,7 @@ public class Boid {
 	
 	Group visual;
 	Polygon polygon;
+	Attractor attractor;
 	
 	Vec pos;
 	Vec vel = new Vec(), acceleration = new Vec();
@@ -46,6 +49,10 @@ public class Boid {
 	public Vec getPos() {return pos;}
 	
 	public Vec getVel() {return vel;}
+	
+	public void setAttractor(Attractor attr) {
+		attractor = attr;
+	}
 	
 	public void update(Collection<Boid> boids, double timeFactor) {
 		
@@ -113,27 +120,35 @@ public class Boid {
 			border.y = borderArea.getMaxY()-seperationRadius.get() - pos.y;
 		}
 		border = border.mult(3.0);
-		
+		Vec att;
+		double attWeight;
+		if(attractor != null) {
+			att = attractor.position().
+					sub(pos).norm().mult(maxVel.get()).sub(vel);
+			attWeight = weightAttractor.get();
+		}else {
+			att = new Vec();
+			attWeight = 0.0;
+		}
+			
 		// put more weight to seperation
 		double weightSum = weightAlignment.get()+weightCohesion.get()
-				+ weightSeperation.get()+weightBorder.get();
+				+ weightSeperation.get()+weightBorder.get() + attWeight;
 		
 		if(weightSum>0.0) {
 			acceleration = acceleration.add(sep.mult(weightSeperation.get()))
 					.add(ali.mult(weightAlignment.get()))
 					.add(coh.mult(weightCohesion.get()))
 					.add(border.mult(weightBorder.get()))
+					.add(att.mult(attWeight))
 					.div(weightSum);
 		}
 		
-		// Scale Accel relative to FPS
-		acceleration = acceleration.limit(maxAccel.get()).mult(timeFactor);
-		
+		acceleration = acceleration.limit(maxAccel.get()).mult(velScale.get()*timeFactor);
 		vel = vel.add(acceleration).limit(maxVel.get());
-		acceleration = new Vec();
-		// Scale Vel relative to FPS
 		pos = pos.add(vel.mult(velScale.get()*timeFactor));
-		//position();
+		
+		acceleration = new Vec();
 	}
 	
 	public void recolor(Paint fill) {

@@ -151,13 +151,13 @@ public class Vec {
 	}
 
 	/**
-	 * Return a normed version of this vector. Throws {@link ArithmeticException}
+	 * Return a normed version of this vector. Returns a new Nullvector
 	 * if this is a null-vector.
 	 * @return A vector with same direction as this but length 1
 	 */
 	public Vec norm() {
 		if(isNull())
-			throw new ArithmeticException("Can't norm a null-vector");
+			return new Vec();
 		return this.mult(1/this.length());
 	}
 	

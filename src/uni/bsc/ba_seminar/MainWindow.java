@@ -6,6 +6,7 @@ import java.util.Vector;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
+import filter.Attractor;
 import filter.GHFilter;
 import filter.TrailRenderer;
 import javafx.animation.AnimationTimer;
@@ -65,6 +66,9 @@ public class MainWindow extends Application {
 	private int measureFrameCount = 0;
 	private double measureTimeFactorAccum = 0.0;
 	
+	private BooleanProperty attractorForAll = new SimpleBooleanProperty(false);
+	private Attractor attractorEight;
+	
 	private GHFilter ghfilter;
 	
 	private List<Boid> boids;
@@ -77,6 +81,18 @@ public class MainWindow extends Application {
 		primaryStage.setResizable(false);
 		primaryStage.setHeight(height);
 		primaryStage.setWidth(width);
+		
+		attractorEight = new Attractor(t ->  {
+			return new Vec(2.0*Math.cos(t*0.5),Math.sin(t));
+		});
+		attractorEight.offset = new Vec(height/2.0,height/2.0);
+		attractorEight.scale.set(100.0);
+		attractorEight.speed.set(0.01);
+		attractorForAll.addListener((ob,o,n)->{
+			for(Boid b:boids) b.setAttractor(n?attractorEight:null);
+			if(!n && boids.size()>0)
+				boids.get(0).setAttractor(attractorEight);
+		});
 		
 		
 		BorderPane root = new BorderPane();
@@ -180,6 +196,12 @@ public class MainWindow extends Application {
 		slBorW.setShowTickMarks(true);
 		flockingMenu.add(slBorW, 0, row++);
 		
+		flockingMenu.add(new Label("Attractor:"), 0, row++);
+		Slider slAttW = new Slider(0.0, 2.0, Boid.weightAttractor.get());
+		slAttW.valueProperty().bindBidirectional(Boid.weightAttractor);
+		slAttW.setShowTickMarks(true);
+		flockingMenu.add(slAttW, 0, row++);
+		
 		flockingMenu.add(new Separator(), 0, row++);
 		flockingMenu.add(new Label("Border inset:"), 0, row++);
 		Slider slBorder = new Slider(0.0, 200.0, border.get());
@@ -188,9 +210,10 @@ public class MainWindow extends Application {
 		slBorder.setShowTickLabels(true);
 		flockingMenu.add(slBorder, 0, row++);
 
-		
-		
-		
+		CheckBox btnAttForAll = new CheckBox("Apply Attractor to all Boids");
+		btnAttForAll.selectedProperty().bindBidirectional(attractorForAll);
+		flockingMenu.add(btnAttForAll, 0, row++);
+				
 		
 		GridPane filterMenu = new GridPane();
 		filterMenu.setBackground(new Background(new BackgroundFill(
@@ -293,6 +316,9 @@ public class MainWindow extends Application {
 		canvas.getChildren().add(b.getVisual());
 		b.position();
 		boidsLabel.setText("Boids: "+boids.size());
+		if(attractorForAll.get()) {
+			b.setAttractor(attractorEight);
+		}
 	}
 	
 	public void startAnimation() {
@@ -340,6 +366,7 @@ public class MainWindow extends Application {
 				canvas.getWidth()-2.0*border.get(), canvas.getHeight()-2.0*border.get());
 		Boid.finalArea = new Rectangle2D(0.0, 0.0, canvas.getWidth(), canvas.getHeight());
 		
+		attractorEight.timeStep(timeFactor);
 		
 		
 //		if(boids.size()>100) {

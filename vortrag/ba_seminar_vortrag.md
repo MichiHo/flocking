@@ -45,12 +45,21 @@ Bei richtiger Wahl der Parameter, *filtert* der G-H-Algorithmus Rauschen heraus 
 ## 3. Kalman-Filter
 
 -   Zustandsvariablen:
-	-   Zustand $\hat{x}_k \in \mathbb{R}^n$
-	-   Kovarianzmatrix $P_k \in \mathbb{R}^{n\times n}$
+	-   **Zustand** $\hat{x}_k \in \mathbb{R}^n$
+		-   *z.B. Position, Geschwindigkeit*
+	-   **Kovarianzmatrix** $P_k \in \mathbb{R}^{n\times n}$
 -   Eingaben:
-	-   Messung $
--   Weltmodell:
-	-   Die **Prediction-Matrix** $F_k \in \mathbb{R}^{n\times n}$ überführt 
-		$\hat{x}_k$ in $\hat{x}_{k+1}$. Damit lässt sich insbesondere der gesamte g-h-Filter realisieren, aber auch *Beschleunigung* bzw Ableitungen beliebigen Grades.
-	-	Die Prediction-Matrix überführt auch $P_k$ zu $P_{k+1}$
+	-   **Messung** $z_k$ ( i.Allg. nicht gleiche Einheiten wie $x_k$ )
+	-   **Messungskovarianz** 
+	-   **Störung** $u_k$ beschreibt den deterministischen & bekannten Einfluss auf den Zustand. 
+		-	*z.B. Steuerung der Motoren*
 	-	
+-   Weltmodell:
+	-   Die **Prediction-Matrix** $F_k \in \mathbb{R}^{n\times n}$ Ü
+		-   Überführt 
+		$\hat{x}_k$ in $\hat{x}_{k+1}$. Damit lässt sich insbesondere der gesamte g-h-Filter realisieren, aber auch *Beschleunigung* bzw Ableitungen beliebigen Grades.
+		-	Die Prediction-Matrix überführt auch $P_k$ zu $P_{k+1}$
+	-	Die **Störungs-Dynamik(name?)** $B_k$ überführt die Größe der Störung $u_k$ in die Einheiten des Zustandes.
+		-	*z.B. Motorspannung beschleunigt etwas*
+	-	Die **Sensor-Matrix(name?)** $H_k$ überführt die Zustandsvariablen in den entsprechenden Sensoroutput (falls Sensoren andere Einheiten / Skalen verwenden als das Modell)
+	-	Der **Kalman-Gain** $\hat{K}_k$ skaliert das Residual im Verhältnis zur Prediction anhand beider Genauigkeiten (?)
