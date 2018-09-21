@@ -1,0 +1,1 @@
+{"noise":0.0,"globalTrailLength":300,"border":60.0,"framesPerMeasure":1,"attractorForAll":true,"velScale":1.0,"seperationRadius":20.0,"radius":50.0,"weightSeperation":0.0,"weightCohesion":0.0,"weightAlignment":0.0,"weightBorder":0.0,"weightAttractor":0.9296875,"maxVel":5.0,"maxAccel":0.1,"gh_active":false,"gh_g":0.14296875,"gh_h":0.02578125}

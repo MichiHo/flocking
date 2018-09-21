@@ -2,11 +2,14 @@ BA Seminar Notizen
 ==================
 
 
-# Implementierng beispiele
-Flocking
-Steering Behaviours
+# Implementierng verbessern
+-	Verrauschtes Sample besser als Kreis (Kovarianz) anzeigen?
+-	Gauß-Noise statt gleichverteilt
+-	Attraktor für getrackted boid um den filter besser zu sehen
+-	Alles größer Skalieren
 
-The coding train steering flocking combine YT
+optional
+-	Konfigurationen laden & speichern
 
 # In den Vortrag reinnehmen
 Markov model 

@@ -15,12 +15,10 @@ import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
+import uni.bsc.ba_seminar.MainWindow;
 
 public class GHFilter {
-	public DoubleProperty g = new SimpleDoubleProperty(0.1);
-	public DoubleProperty h = new SimpleDoubleProperty(0.0);
 	public StringProperty status = new SimpleStringProperty("init");
-	public BooleanProperty active = new SimpleBooleanProperty(true);
 	private int dimension;
 	
 	private Vector<Double> x,v;
@@ -42,7 +40,7 @@ public class GHFilter {
 		}
 		
 		visual = new Group();
-		visual.visibleProperty().bind(active);
+		visual.visibleProperty().bind(MainWindow.data.gh_activeProperty());
 		visual.setPickOnBounds(false);
 		trail.setStroke(Color.RED);
 		trail.setStrokeWidth(7.0);
@@ -63,8 +61,8 @@ public class GHFilter {
 			
 			residual = measures.get(dim) - x_k;
 
-			newX.add(x_k + g.get()*residual);
-			newV.add(v_k + h.get()*residual/timeFactor);
+			newX.add(x_k + MainWindow.data.getGh_g()*residual);
+			newV.add(v_k + MainWindow.data.getGh_h()*residual/timeFactor);
 		}
 		// Update 2D Visual
 		dot.setCenterX(newX.get(0));
@@ -75,7 +73,7 @@ public class GHFilter {
 		x = newX;
 		v = newV;
 		
-		if(0.0 > 4.0 - 2.0*g.get() - h.get()) {
+		if(0.0 > 4.0 - 2.0*MainWindow.data.getGh_g() - MainWindow.data.getGh_h()) {
 			status.set("Instabil");
 		} else {
 			status.set("Stabil?");

@@ -13,16 +13,7 @@ import javafx.scene.paint.Paint;
 import javafx.scene.shape.Polygon;
 
 public class Boid {
-	public static DoubleProperty velScale = new SimpleDoubleProperty(1.0);
-	public static DoubleProperty seperationRadius = new SimpleDoubleProperty(20.0);
-	public static DoubleProperty radius = new SimpleDoubleProperty(50.0);
-	public static DoubleProperty weightSeperation = new SimpleDoubleProperty(1.5);
-	public static DoubleProperty weightCohesion = new SimpleDoubleProperty(1.0);
-	public static DoubleProperty weightAlignment = new SimpleDoubleProperty(1.0);
-	public static DoubleProperty weightBorder = new SimpleDoubleProperty(2.0);
-	public static DoubleProperty weightAttractor = new SimpleDoubleProperty(0.0);
-	public static DoubleProperty maxVel = new SimpleDoubleProperty(5.0), 
-			maxAccel = new SimpleDoubleProperty(0.1);
+	
 	
 	public static Rectangle2D borderArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0), 
 			finalArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
@@ -71,13 +62,13 @@ public class Boid {
 			if(dist<=0.00001) continue;
 			
 			// Seperation
-			if(dist < seperationRadius.get()) {
+			if(dist < MainWindow.data.getSeperationRadius()) {
 				// Richtung weg vom Boid, normiert und mit 1/abstand gewichtet
 				sep = sep.add(pos.sub(b.pos).norm().div(dist));
 			}
 			
 			// Alignment & Cohesion
-			if(dist < radius.get()) {
+			if(dist < MainWindow.data.getRadius()) {
 				++count;
 				posSum = posSum.add(b.getPos());
 				velSum = velSum.add(b.getVel().div(dist));
@@ -88,65 +79,70 @@ public class Boid {
 		// sep tries to steer away from too close boids
 		// norm it to maxVel
 		if(!sep.isNull()) {
-			sep = sep.norm().mult(maxVel.get()).sub(vel);
+			sep = sep.norm().mult(MainWindow.data.getMaxVel()).sub(vel);
 		}
 		
 		// velSum contains the dominant velocity direction after
 		// norming it to maxVel
 		if(!velSum.isNull()) {
-			ali = velSum.norm().mult(maxVel.get()).sub(vel);
+			ali = velSum.norm().mult(MainWindow.data.getMaxVel()).sub(vel);
 		}	
 		
 		// posSum.div(count) gives average position of swarm
 		// subtract position for direction and norm to maxVel
 		if(count > 0) {
-			coh = posSum.div(count).sub(pos).norm().mult(maxVel.get()).sub(vel);
+			coh = posSum.div(count).sub(pos).norm().mult(MainWindow.data.getMaxVel()).sub(vel);
 		}
 		
 		Vec border = new Vec();
-		if(pos.x < borderArea.getMinX()+seperationRadius.get()) {
+		if(pos.x < borderArea.getMinX()+MainWindow.data.getSeperationRadius()) {
 			// left
-			border.x = borderArea.getMinX()+seperationRadius.get() - pos.x;
-		} else if (pos.x > borderArea.getMaxX()-seperationRadius.get()) {
+			border.x = borderArea.getMinX()+MainWindow.data.getSeperationRadius() - pos.x;
+		} else if (pos.x > borderArea.getMaxX()-MainWindow.data.getSeperationRadius()) {
 			// Right
-			border.x = borderArea.getMaxX()-seperationRadius.get() - pos.x;
+			border.x = borderArea.getMaxX()-MainWindow.data.getSeperationRadius() - pos.x;
 		}
 		
-		if(pos.y < borderArea.getMinY()+seperationRadius.get()) {
+		if(pos.y < borderArea.getMinY()+MainWindow.data.getSeperationRadius()) {
 			// left
-			border.y = borderArea.getMinY()+seperationRadius.get() - pos.y;
-		} else if (pos.y > borderArea.getMaxY()-seperationRadius.get()) {
+			border.y = borderArea.getMinY()+MainWindow.data.getSeperationRadius() - pos.y;
+		} else if (pos.y > borderArea.getMaxY()-MainWindow.data.getSeperationRadius()) {
 			// Right
-			border.y = borderArea.getMaxY()-seperationRadius.get() - pos.y;
+			border.y = borderArea.getMaxY()-MainWindow.data.getSeperationRadius() - pos.y;
 		}
 		border = border.mult(3.0);
 		Vec att;
 		double attWeight;
 		if(attractor != null) {
+			double attrDist = attractor.position().distance(pos);
+			double f = 1.0;
+			if(attrDist<MainWindow.data.getSeperationRadius()) {
+				f = attrDist / MainWindow.data.getSeperationRadius();
+			}
 			att = attractor.position().
-					sub(pos).norm().mult(maxVel.get()).sub(vel);
-			attWeight = weightAttractor.get();
+					sub(pos).norm().mult(MainWindow.data.getMaxVel()*f).sub(vel);
+			attWeight = MainWindow.data.getWeightAttractor();
 		}else {
 			att = new Vec();
 			attWeight = 0.0;
 		}
 			
 		// put more weight to seperation
-		double weightSum = weightAlignment.get()+weightCohesion.get()
-				+ weightSeperation.get()+weightBorder.get() + attWeight;
+		double weightSum = MainWindow.data.getWeightAlignment()+MainWindow.data.getWeightCohesion()
+				+ MainWindow.data.getWeightSeperation()+MainWindow.data.getWeightBorder() + attWeight;
 		
 		if(weightSum>0.0) {
-			acceleration = acceleration.add(sep.mult(weightSeperation.get()))
-					.add(ali.mult(weightAlignment.get()))
-					.add(coh.mult(weightCohesion.get()))
-					.add(border.mult(weightBorder.get()))
+			acceleration = acceleration.add(sep.mult(MainWindow.data.getWeightSeperation()))
+					.add(ali.mult(MainWindow.data.getWeightAlignment()))
+					.add(coh.mult(MainWindow.data.getWeightCohesion()))
+					.add(border.mult(MainWindow.data.getWeightBorder()))
 					.add(att.mult(attWeight))
 					.div(weightSum);
 		}
 		
-		acceleration = acceleration.limit(maxAccel.get()).mult(velScale.get()*timeFactor);
-		vel = vel.add(acceleration).limit(maxVel.get());
-		pos = pos.add(vel.mult(velScale.get()*timeFactor));
+		acceleration = acceleration.limit(MainWindow.data.getMaxAccel()).mult(MainWindow.data.getVelScale()*timeFactor);
+		vel = vel.add(acceleration).limit(MainWindow.data.getMaxVel());
+		pos = pos.add(vel.mult(MainWindow.data.getVelScale()*timeFactor));
 		
 		acceleration = new Vec();
 	}
