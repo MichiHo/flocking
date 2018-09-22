@@ -1,65 +1,78 @@
-Bachelor Seminar : Kalman Filter
-================================
+---
+title: "Bachelor Seminar : Kalman Filter"
+geometry: margin=1.0cm
+papersize: a4
+---
 
-## Struktur
+# Struktur
 
-1.  Einführung
-	*   Standardbeispiele?
+1.  Introduction
+	*   Examples?
 2.  g-h-Filter
 3.  Kalman-Filter
-4.  Ausblick: Extended / Unscented Kalman Filter
-5.  Schluss
+4.  Outlook: Extended / Unscented Kalman Filter
+5.  End.
 
 
 -   Hidden Markov model?
 
-## 1. Einführung
+# 1. Introduction
 
-*   Konzept der hier vorgestellten Filter: Ungenaue Messungen kombinieren mit Vorhersagen anhand des Weltmodells und des Vergangenen Zustandes (eventuell auch mit Steuerinformationen) um **genauere** Ergebnisse zu bekommen.
+*   Concept of the presented filters: Combine inaccurate measures and worldmodel-based predictions to achieve better accuracy.
+*   Use case: **Tracking** of real Objects 
 
-## 2. G-H-Filter
+# 2. G-H-Filter
 
--   Zustandsvariablen:
-	-   $\hat{x}_k$ entspricht der Position
-	-   $\hat{v}_k$ entspricht der Geschwindigkeit
--   Eingaben:
-	-   Messung $x_k$
--   Weltmodell: 
-	-   $\hat{x}_k$ wird pro Zeitschritt $\Delta t$ als 
-		$\hat{x}_k = \hat{x}_{k-1} + \Delta t \cdot \hat{v}_{k-1}$ upgedated
--   Bei Update-Schritt mit der ungenauen Messung $x_k$ wird zusätzlich mit dem **Residual** $\hat{r}_k = x_k - \hat{x}_k$ und den **Parametern $g$ und $h$** korrigiert:
+-   State variables:
+	-   $\hat{x}_k$ like position
+	-   $\hat{v}_k$ like velocity
+-   Input:
+	-   Measures $x_k$
+-   World Model: 
+	-   $\hat{x}_k$ is being predicted each time interval $\Delta t$ as 
+		$\hat{x}_k = \hat{x}_{k-1} + \Delta t \cdot \hat{v}_{k-1}$
+-   The Update-step with assumedly inaccurate measure $x_k$ uses the **Residual** $\hat{r}_k = x_k - \hat{x}_k$ scaled by **Parameters $g$ and $h$** to correct predictions:
 	-   $\hat{x}_k = \hat{x}_{k-1} + \Delta t \cdot \hat{v}_{k-1} + g\cdot \hat{r}_k$
 	-   $\hat{v}_k = \hat{v}_{k-1}  + \frac{h}{\Delta t}\cdot \hat{r}_k$
 
-### Wahl von $g$ und $h$
-Große Parameter reagieren gut auf Transienten aber auch auf Rauschen. 
-Kleine Parameter filtern Rauschen aber auch Transienten raus.
+## Notes
+-	G-H-Filter is also used to *predict*: after update comes next predict already, with time-constant used.
+	-	many sensors (radar, etc) measure in constant intervals.
 
-Bei richtiger Wahl der Parameter, *filtert* der G-H-Algorithmus Rauschen heraus und erzeugt schönere Ergebnisse.
+## Choice of $g$ and $h$
+Big Parameters match transients but also emphasize noise.
+Small Parameters reduce noise but might lead to divergence from real position.
 
-### Nachteile
--   Beschleunigung kein Teil des Modells
--   Sehr simpel
+Big values for $g$ that aren't corrected with big $h$ values can push the filter into Resonance and make the velocity increase unreasonably fast.
+
+If chosen well, the algorithm *filters* Measurement-Noise and leads to smoother and more accurate results in tracking
+
+## Disadvantages
+-   Reacts poorly to more complex acceleration
 
 
-## 3. Kalman-Filter
+# 3. Kalman-Filter
 
--   Zustandsvariablen:
-	-   **Zustand** $\hat{x}_k \in \mathbb{R}^n$
+-   State Variables:
+	-   **State** $\hat{x}_k \in \mathbb{R}^n$
 		-   *z.B. Position, Geschwindigkeit*
-	-   **Kovarianzmatrix** $P_k \in \mathbb{R}^{n\times n}$
--   Eingaben:
-	-   **Messung** $z_k$ ( i.Allg. nicht gleiche Einheiten wie $x_k$ )
-	-   **Messungskovarianz** 
-	-   **Störung** $u_k$ beschreibt den deterministischen & bekannten Einfluss auf den Zustand. 
+	-   **Kovariance-Matrix** $P_k \in \mathbb{R}^{n\times n}$
+-   Input:
+	-   **Measurement / Sensor Reading** $z_k$ ( generally not of the same unit as $x_k$ )
+	-   **Kovariance of Observation Noise** $R_k$ 
+	-   **Control Vector** $u_k$ beschreibt den deterministischen & bekannten Einfluss auf den Zustand. 
 		-	*z.B. Steuerung der Motoren*
 	-	
--   Weltmodell:
-	-   Die **Prediction-Matrix** $F_k \in \mathbb{R}^{n\times n}$ Ü
-		-   Überführt 
-		$\hat{x}_k$ in $\hat{x}_{k+1}$. Damit lässt sich insbesondere der gesamte g-h-Filter realisieren, aber auch *Beschleunigung* bzw Ableitungen beliebigen Grades.
-		-	Die Prediction-Matrix überführt auch $P_k$ zu $P_{k+1}$
-	-	Die **Störungs-Dynamik(name?)** $B_k$ überführt die Größe der Störung $u_k$ in die Einheiten des Zustandes.
-		-	*z.B. Motorspannung beschleunigt etwas*
-	-	Die **Sensor-Matrix(name?)** $H_k$ überführt die Zustandsvariablen in den entsprechenden Sensoroutput (falls Sensoren andere Einheiten / Skalen verwenden als das Modell)
-	-	Der **Kalman-Gain** $\hat{K}_k$ skaliert das Residual im Verhältnis zur Prediction anhand beider Genauigkeiten (?)
+-   World Model:
+	-   The **Prediction-Matrix (State-transition model)** $F_k \in \mathbb{R}^{n\times n}$ 
+		-   converts $\hat{x}_k$ to $\hat{x}_{k+1}$. This can be used to realize position & velocity as in the g-h-filter, but also *Acceleration* or rather derivations of any degree.
+		-	The Prediction-Matrix also converts $P_k$ to $P_{k+1}$
+	-	The **Control-Matrix (Control-input model)** $B_k$ converts the control-vector $u_k$ to the units of the state variable.
+		-	*z.B. Voltagelevel on Engine leading to increased velocity*
+	-	The **Sensor-Matrix(name?) (Observation model)** $H_k$ converts the state-variable to the units of the measurement-vector (in case the sensors use different units than the kalman filter's state model)
+	-	The **Kalman-Gain** $\hat{K}_k$ scales the Residual in proportion to the prediction by evaluating the current sensor-accuracy
+
+## Theory
+-	Kalman Filter analogous to Hidden Markov Model but with **continous** hidden variables
+
+## 3.n Measuring

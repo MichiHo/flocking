@@ -8,8 +8,6 @@ BA Seminar Notizen
 -	Attraktor für getrackted boid um den filter besser zu sehen
 -	Alles größer Skalieren
 
-optional
--	Konfigurationen laden & speichern
 
 # In den Vortrag reinnehmen
 Markov model 
