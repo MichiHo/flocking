@@ -43,7 +43,7 @@ public class GHFilter {
 		visual.visibleProperty().bind(MainWindow.data.gh_activeProperty());
 		visual.setPickOnBounds(false);
 		trail.setStroke(Color.RED);
-		trail.setStrokeWidth(7.0);
+		trail.setStrokeWidth(3.0);
 		visual.getChildren().add(trail);
 		visual.getChildren().add(dot);
 	}

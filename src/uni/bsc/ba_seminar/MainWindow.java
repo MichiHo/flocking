@@ -5,6 +5,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -70,6 +71,7 @@ public class MainWindow extends Application {
 	private ComboBox<String> confChooser;
 	private int cores;
 	private double timeFactor;
+	private Random randomX = new Random(), randomY = new Random();
 	
 	private Circle measureDot = new Circle(0.0, 0.0, 3.0, Color.BLACK);
 	private TrailRenderer measureTrail = new TrailRenderer(300);
@@ -97,8 +99,8 @@ public class MainWindow extends Application {
 		attractorEight = new Attractor(t ->  {
 			return new Vec(2.0*Math.cos(t),Math.sin(t*2.0));
 		});
-		attractorEight.offset = new Vec(height/2.0,height/2.0);
-		attractorEight.scale.set(100.0);
+		attractorEight.offset = new Vec(width*0.6,height/2.0);
+		attractorEight.scale.set(200.0);
 		attractorEight.speed.bind(data.attractorSpeedProperty());
 		data.attractorForAllProperty().addListener((ob,o,n)->{
 			for(Boid b:boids) b.setAttractor(n?attractorEight:null);
@@ -277,6 +279,10 @@ public class MainWindow extends Application {
 		slBorder.setShowTickMarks(true);
 		slBorder.setShowTickLabels(true);
 		flockingMenu.add(slBorder, 0, row++);
+		
+		CheckBox btnBorderFlip = new CheckBox("Border flip");
+		btnBorderFlip.selectedProperty().bindBidirectional(data.borderFlipProperty());
+		flockingMenu.add(btnBorderFlip, 0, row++);
 
 		CheckBox btnAttForAll = new CheckBox("Apply Attractor to all Boids");
 		btnAttForAll.selectedProperty().bindBidirectional(data.attractorForAllProperty());
@@ -501,8 +507,8 @@ public class MainWindow extends Application {
 				boids.get(0).getVisual().setScaleY(2.0);
 				boids.get(0).recolor(Color.BLUE);
 				Vector<Double> measure = new Vector<Double>();
-				measure.add(boids.get(0).pos.x + data.noiseProperty().get()*(Math.random()-0.5));
-				measure.add(boids.get(0).pos.y + data.noiseProperty().get()*(Math.random()-0.5));
+				measure.add(boids.get(0).pos.x + data.noiseProperty().get()*(randomX.nextGaussian()));
+				measure.add(boids.get(0).pos.y + data.noiseProperty().get()*(randomY.nextGaussian()));
 				measureDot.setCenterX(measure.get(0));
 				measureDot.setCenterY(measure.get(1));
 				measureTrail.push(measure.get(0), measure.get(1));

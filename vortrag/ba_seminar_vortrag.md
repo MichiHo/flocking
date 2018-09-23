@@ -52,6 +52,7 @@ If chosen well, the algorithm *filters* Measurement-Noise and leads to smoother 
 
 
 # 3. Kalman-Filter
+Kalman Filter represents state as Propability Distributions with mean $x$ and (co)variance $P$
 
 -   State Variables:
 	-   **State** $\hat{x}_k \in \mathbb{R}^n$
@@ -73,6 +74,11 @@ If chosen well, the algorithm *filters* Measurement-Noise and leads to smoother 
 	-	The **Kalman-Gain** $\hat{K}_k$ scales the Residual in proportion to the prediction by evaluating the current sensor-accuracy
 
 ## Theory
+-	Kalman Filter is a common **Sensor Fusion** Algorithm
 -	Kalman Filter analogous to Hidden Markov Model but with **continous** hidden variables
+-	Kalman Filter is optimal linear filter, assumed
+	1.	the model perfectly matches the real system
+	2.	the entering noise is white (uncorrelated) 
+	3.	the covariances of the noise are exactly known
 
 ## 3.n Measuring

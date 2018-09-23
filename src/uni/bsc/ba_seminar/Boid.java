@@ -143,6 +143,9 @@ public class Boid {
 		acceleration = acceleration.limit(MainWindow.data.getMaxAccel()).mult(MainWindow.data.getVelScale()*timeFactor);
 		vel = vel.add(acceleration).limit(MainWindow.data.getMaxVel());
 		pos = pos.add(vel.mult(MainWindow.data.getVelScale()*timeFactor));
+		if(MainWindow.data.isBorderFlip()) {
+			
+		}
 		
 		acceleration = new Vec();
 	}

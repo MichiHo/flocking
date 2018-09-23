@@ -12,11 +12,12 @@ public class DataModel {
 	
 	// Boid Movement
 	private BooleanProperty attractorForAll = new SimpleBooleanProperty(false);
-	private DoubleProperty attractorSpeed = new SimpleDoubleProperty(0.3);
+	private DoubleProperty attractorSpeed = new SimpleDoubleProperty(0.2);
 	private DoubleProperty border = new SimpleDoubleProperty(60.0);
 	private DoubleProperty velScale = new SimpleDoubleProperty(1.0);
 	private DoubleProperty maxVel = new SimpleDoubleProperty(5.0); 
 	private DoubleProperty maxAccel = new SimpleDoubleProperty(0.1);
+	private BooleanProperty borderFlip = new SimpleBooleanProperty(true);
 	
 	// Flocking Parameters
 	private DoubleProperty seperationRadius = new SimpleDoubleProperty(20.0);
@@ -336,6 +337,21 @@ public class DataModel {
 	public final void setShowPositionTrail(final boolean showPositionTrail) {
 		this.showPositionTrailProperty().set(showPositionTrail);
 	}
+
+	public final BooleanProperty borderFlipProperty() {
+		return this.borderFlip;
+	}
+	
+
+	public final boolean isBorderFlip() {
+		return this.borderFlipProperty().get();
+	}
+	
+
+	public final void setBorderFlip(final boolean borderFlip) {
+		this.borderFlipProperty().set(borderFlip);
+	}
+	
 	
 	
 	
