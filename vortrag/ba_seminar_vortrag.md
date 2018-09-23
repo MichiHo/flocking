@@ -92,3 +92,27 @@ The **Benedict-Bordner-Filter** is a g-h-filter with $h$ chosen relative to $g$ 
 
 -	stochastic model for randomly changing systems
 -	**markov property** : future state(s) depend only on current
+### Markov Chain
+for fully observable systems
+
+= sequence of random variables $x \in S$ with **countable** and often finite State-Space $S$
+
+Transitions between states are given per Timestep (or globally, if *time-homogeneous*)
+
+-	If S is finite -> directed graph, nodes in $S$, edges the probability
+-	or Transition Matrix
+example: PageRank algorithm by Google
+
+### Hidden Markov Model
+for partially observable systems!
+
+-	Not the state variables $x \in S$ are observable, just **output tokens** $z$ that depend on the state
+	-	Each state $x$ has probability-dist over possible tokens $p(x | z)$
+	-	sequence of tokens gives only **some** information.
+
+-	can be represented as simple **Dynamic Bayesian Network** (Transition probabilities from one *explicit* time to the next timestep).
+
+examples 
+-	reinforcement learning
+-	pattern recognition (speech, handwriting, gestures)
+-	bioinformatics

@@ -3,8 +3,6 @@ package uni.bsc.ba_seminar;
 /**
  * Utility class for 2D Vector
  * 
- * @author Gebhardt, Hochmuth, Kiriakidou
- * @version 2018/04/24
  */
 public class Vec {
 	

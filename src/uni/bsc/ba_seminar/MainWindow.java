@@ -13,8 +13,11 @@ import java.util.concurrent.CyclicBarrier;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import cern.colt.matrix.DoubleFactory1D;
+import cern.colt.matrix.DoubleFactory2D;
 import filter.Attractor;
 import filter.GHFilter;
+import filter.KalmanFilter;
 import filter.TrailRenderer;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -84,9 +87,11 @@ public class MainWindow extends Application {
 	private Random randomX = new Random(), randomY = new Random();
 	
 	private Circle measureDot = new Circle(0.0, 0.0, 3.0, Color.BLACK);
-	private Circle measureNoiseCircle;
 	private TrailRenderer measureTrail = new TrailRenderer(300);
+	private Circle measureNoiseCircle;
 	private TrailRenderer positionTrail = new TrailRenderer(300);
+	private Circle kalmanDot = new Circle(0.0, 0.0, 3.0, Color.CYAN);
+	private TrailRenderer kalmanTrail = new TrailRenderer(300);
 	private GridPane menuPane;
 	
 	// For simulating lower-frequency measuring
@@ -94,11 +99,36 @@ public class MainWindow extends Application {
 	private double measureTimeFactorAccum = 0.0;
 	
 	private GHFilter ghfilter;
+	private KalmanFilter kalmanfilter;
 	
 	private List<Boid> boids;
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		ghfilter = new GHFilter(2);
+		kalmanfilter = new KalmanFilter(4);
+		kalmanfilter.setObservationModel(DoubleFactory2D.dense.make(
+				new double [][]{
+					{1.0,0.0,0.0,0.0},	// apply x
+					{0.0,1.0,0.0,0.0}}	// apply y
+					));
+		System.out.println("o" + DoubleFactory2D.dense.make(
+				new double [][]{
+					{1.0,0.0},	// apply x
+					{0.0,1.0},	// apply y
+					{0.0,0.0},
+					{0.0,0.0}} ).columns());
+		kalmanfilter.setStateTransitionModel(DoubleFactory2D.dense.make(
+				new double [][]{
+					{1.0,0.0,1.0,0.0},		// x = x + t*dx
+					{0.0,1.0,0.0,1.0},		// y = y + t*dy
+					{0.0,0.0,1.0,0.0},		// dx = dx
+					{0.0,0.0,0.0,1.0}} ));	// dy = dy
+		kalmanfilter.setProcessNoise(DoubleFactory2D.dense.make(
+				new double [][]{
+					{1.0, 0.2, 0.0, 0.0},		// x = x + t*dx
+					{0.2, 1.0, 0.0, 0.0},		// y = y + t*dy
+					{0.0, 0.0, 1.0, 0.0},		// dx = dx
+					{0.0, 0.0, 0.0, 1.0}} ));	// dy = dy
 		
 		cores = Runtime.getRuntime().availableProcessors();
 		System.out.println("cores:"+cores);
@@ -425,6 +455,28 @@ public class MainWindow extends Application {
 		filterMenu.add(slFilterH, 0, row++);
 		
 		
+		filterMenu.add(caption("Kalman Filter"), 0, row++);
+		CheckBox btnKalmanActive = new CheckBox("Active");
+		btnKalmanActive.selectedProperty().bindBidirectional(data.kalman_activeProperty());
+		filterMenu.add(btnKalmanActive, 0, row++);
+		
+		Button btnKalmanSet = new Button("Set to Boid");
+		btnKalmanSet.setOnAction(e->{
+			if(boids.size()<1) return;
+			Boid b = boids.get(0);
+			kalmanfilter.setState(DoubleFactory1D.dense.make(new double[] 
+					{b.getPos().x, b.getPos().y,
+					 b.getVel().x, b.getVel().y}), 
+					DoubleFactory2D.dense.make(
+							new double [][]{
+								{1.0,0.0,0.0,0.0},	// apply x
+								{0.0,1.0,0.0,0.0},	// apply y
+								{0.0,0.0,1.0,0.0},
+								{0.0,0.0,0.0,1.0}} ));
+		});
+		filterMenu.add(btnKalmanSet, 0, row++);
+		
+		
 		ScrollPane menuScroll = new ScrollPane(menuPane);
 		menuScroll.setHbarPolicy(ScrollBarPolicy.NEVER);
 		menuScroll.setPrefWidth(menuWidth + 50.0);
@@ -454,6 +506,12 @@ public class MainWindow extends Application {
 		positionTrail.lengthProperty().bind(data.globalTrailLengthProperty());
 		filterVisuals.getChildren().add(positionTrail);
 		filterVisuals.getChildren().add(data.getAttractorType().attractor.getVisual()); 
+		kalmanTrail.lengthProperty().bind(data.globalTrailLengthProperty());
+		kalmanTrail.setStroke(Color.CYAN);
+		kalmanTrail.visibleProperty().bind(data.kalman_activeProperty());
+		kalmanDot.visibleProperty().bind(data.kalman_activeProperty());
+		filterVisuals.getChildren().add(kalmanDot);
+		filterVisuals.getChildren().add(kalmanTrail);
 		data.attractorTypeProperty().addListener((c,o,n)->{
 			filterVisuals.getChildren().remove(o.attractor.getVisual());
 			filterVisuals.getChildren().add(n.attractor.getVisual());
@@ -566,6 +624,18 @@ public class MainWindow extends Application {
 					measureDot.setCenterY(measure.get(1));
 					measureTrail.push(measure.get(0), measure.get(1));
 					if(data.isGh_active()) ghfilter.step(measure, measureTimeFactorAccum); // oder deltaTime?
+					
+					if(data.isKalman_active()) {
+						kalmanfilter.step(DoubleFactory1D.dense.make(new double[] 
+								{measure.get(0), measure.get(1)}),
+								DoubleFactory2D.dense.make(new double [][]{
+								{data.noiseProperty().get()*data.noiseProperty().get(), 0.01},
+								{0.01, data.noiseProperty().get()*data.noiseProperty().get()}} ),null);
+						Vec kalmanPos = new Vec(kalmanfilter.getState().get(0),kalmanfilter.getState().get(1));
+						kalmanDot.setCenterX(kalmanPos.x);
+						kalmanDot.setCenterY(kalmanPos.y);
+						kalmanTrail.push(kalmanPos);
+					}
 					
 					measureFrameCount = 0;
 					measureTimeFactorAccum = 0.0;

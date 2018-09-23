@@ -74,6 +74,8 @@ public class DataModel {
 	private DoubleProperty gh_g = new SimpleDoubleProperty(0.1);
 	private DoubleProperty gh_h = new SimpleDoubleProperty(0.0);
 	
+	private BooleanProperty kalman_active = new SimpleBooleanProperty(false);
+	
 	// Visuals
 	private IntegerProperty globalTrailLength = new SimpleIntegerProperty(300);
 	private BooleanProperty showPositionTrail = new SimpleBooleanProperty(false);
@@ -461,6 +463,21 @@ public class DataModel {
 	public final void setShowFilterTrail(final boolean showFilterTrail) {
 		this.showFilterTrailProperty().set(showFilterTrail);
 	}
+
+	public final BooleanProperty kalman_activeProperty() {
+		return this.kalman_active;
+	}
+	
+
+	public final boolean isKalman_active() {
+		return this.kalman_activeProperty().get();
+	}
+	
+
+	public final void setKalman_active(final boolean kalman_active) {
+		this.kalman_activeProperty().set(kalman_active);
+	}
+	
 	
 	
 	
