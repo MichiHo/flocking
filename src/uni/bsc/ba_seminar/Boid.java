@@ -17,10 +17,12 @@ public class Boid {
 	
 	public static Rectangle2D borderArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0), 
 			finalArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
+	public static DoubleProperty steeringRadius = new SimpleDoubleProperty(60.0);
+			
 	
 	Group visual;
 	Polygon polygon;
-	Attractor attractor;
+	public boolean useAttractor;
 	
 	Vec pos;
 	Vec vel = new Vec(), acceleration = new Vec();
@@ -41,9 +43,6 @@ public class Boid {
 	
 	public Vec getVel() {return vel;}
 	
-	public void setAttractor(Attractor attr) {
-		attractor = attr;
-	}
 	
 	public void update(Collection<Boid> boids, double timeFactor) {
 		
@@ -113,13 +112,14 @@ public class Boid {
 		border = border.mult(3.0);
 		Vec att;
 		double attWeight;
-		if(attractor != null) {
-			double attrDist = attractor.position().distance(pos);
+		if(useAttractor) {
+			Attractor a = MainWindow.data.getAttractorType().attractor;
+			double attrDist = a.position().distance(pos);
 			double f = 1.0;
-			if(attrDist<MainWindow.data.getSeperationRadius()) {
-				f = attrDist / MainWindow.data.getSeperationRadius();
+			if(attrDist< steeringRadius.get()) {
+				f = attrDist / steeringRadius.get();
 			}
-			att = attractor.position().
+			att = a.position().
 					sub(pos).norm().mult(MainWindow.data.getMaxVel()*f).sub(vel);
 			attWeight = MainWindow.data.getWeightAttractor();
 		}else {
@@ -144,7 +144,9 @@ public class Boid {
 		vel = vel.add(acceleration).limit(MainWindow.data.getMaxVel());
 		pos = pos.add(vel.mult(MainWindow.data.getVelScale()*timeFactor));
 		if(MainWindow.data.isBorderFlip()) {
-			
+			if(pos.x < 0) pos.x += finalArea.getWidth();
+			if(pos.y < 0) pos.y += finalArea.getHeight();
+			pos = new Vec(pos.x%finalArea.getWidth(), pos.y % finalArea.getHeight());
 		}
 		
 		acceleration = new Vec();

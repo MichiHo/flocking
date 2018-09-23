@@ -15,6 +15,7 @@ import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
+import uni.bsc.ba_seminar.DataModel.GHFilterMode;
 import uni.bsc.ba_seminar.MainWindow;
 
 public class GHFilter {
@@ -43,7 +44,8 @@ public class GHFilter {
 		visual.visibleProperty().bind(MainWindow.data.gh_activeProperty());
 		visual.setPickOnBounds(false);
 		trail.setStroke(Color.RED);
-		trail.setStrokeWidth(3.0);
+		trail.setStrokeWidth(1.0);
+		trail.visibleProperty().bind(MainWindow.data.showFilterTrailProperty());
 		visual.getChildren().add(trail);
 		visual.getChildren().add(dot);
 	}
@@ -54,15 +56,19 @@ public class GHFilter {
 		Vector<Double> newX = new Vector<>(dimension);
 		Vector<Double> newV = new Vector<>(dimension);
 		
-		double residual, x_k, v_k;
+		double residual, x_k, v_k, g = MainWindow.data.getGh_g(), h = MainWindow.data.getGh_h();
+		
+		if(MainWindow.data.getGh_mode() == GHFilterMode.Benedict_Bordner && g < 2.0)
+			h = g*g/(2.0-g);
+		
 		for(int dim = 0; dim < dimension; ++dim) {
 			x_k = x.get(dim) + timeFactor*v.get(dim);
 			v_k = v.get(dim);
 			
 			residual = measures.get(dim) - x_k;
-
-			newX.add(x_k + MainWindow.data.getGh_g()*residual);
-			newV.add(v_k + MainWindow.data.getGh_h()*residual/timeFactor);
+			
+			newX.add(x_k + g*residual);
+			newV.add(v_k + h*residual/timeFactor);
 		}
 		// Update 2D Visual
 		dot.setCenterX(newX.get(0));

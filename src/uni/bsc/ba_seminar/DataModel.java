@@ -1,18 +1,53 @@
 package uni.bsc.ba_seminar;
 
+import filter.Attractor;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 
 
 public class DataModel {
+	public static enum GHFilterMode {
+		Normal(true),
+		Benedict_Bordner(false);
+		public final boolean hChoosable;
+		private GHFilterMode(boolean h) {hChoosable = h;}
+	}
+	
+	public static enum AttractorType {
+		Eight(new Attractor(t ->  {
+			return new Vec(2.0*Math.cos(t),Math.sin(t*2.0));
+		})),
+		Circle(new Attractor(t ->  {
+			return new Vec(Math.cos(t),Math.sin(t));
+		})),
+		Line(new Attractor(t ->  {
+			if(t<Math.PI)
+				return new Vec(
+						-1.0 + 2.0*t/Math.PI, 
+						-1.0 + 2.0*t/Math.PI);
+			else
+				return new Vec(
+						1.0 + 2.0*(Math.PI-t)/Math.PI, 
+						1.0 + 2.0*(Math.PI-t)/Math.PI);
+			
+		}));
+		
+		public final Attractor attractor;
+		private AttractorType(Attractor a) {
+			attractor = a;
+		}
+	}
 	
 	// Boid Movement
 	private BooleanProperty attractorForAll = new SimpleBooleanProperty(false);
 	private DoubleProperty attractorSpeed = new SimpleDoubleProperty(0.2);
+	private ObjectProperty<AttractorType> attractorType = new SimpleObjectProperty<>(AttractorType.Line);
 	private DoubleProperty border = new SimpleDoubleProperty(60.0);
 	private DoubleProperty velScale = new SimpleDoubleProperty(1.0);
 	private DoubleProperty maxVel = new SimpleDoubleProperty(5.0); 
@@ -32,15 +67,20 @@ public class DataModel {
 	private DoubleProperty noise = new SimpleDoubleProperty(0.0);
 	private IntegerProperty framesPerMeasure = new SimpleIntegerProperty(1);
 	
+	
 	// G-H-Filter
+	private ObjectProperty<GHFilterMode> gh_mode = new SimpleObjectProperty<>(GHFilterMode.Normal);
 	private BooleanProperty gh_active = new SimpleBooleanProperty(true);
 	private DoubleProperty gh_g = new SimpleDoubleProperty(0.1);
 	private DoubleProperty gh_h = new SimpleDoubleProperty(0.0);
 	
 	// Visuals
 	private IntegerProperty globalTrailLength = new SimpleIntegerProperty(300);
-	private BooleanProperty showMeasureTrail = new SimpleBooleanProperty(false);
 	private BooleanProperty showPositionTrail = new SimpleBooleanProperty(false);
+	private BooleanProperty showMeasureTrail = new SimpleBooleanProperty(false);
+	private BooleanProperty showFilterTrail = new SimpleBooleanProperty(true);
+	private BooleanProperty showMeasureNoise = new SimpleBooleanProperty(false);
+	private BooleanProperty showAttractor = new SimpleBooleanProperty(true);
 	
 	public final DoubleProperty noiseProperty() {
 		return this.noise;
@@ -351,6 +391,81 @@ public class DataModel {
 	public final void setBorderFlip(final boolean borderFlip) {
 		this.borderFlipProperty().set(borderFlip);
 	}
+
+	public final ObjectProperty<GHFilterMode> gh_modeProperty() {
+		return this.gh_mode;
+	}
+	
+
+	public final GHFilterMode getGh_mode() {
+		return this.gh_modeProperty().get();
+	}
+	
+
+	public final void setGh_mode(final GHFilterMode gh_mode) {
+		this.gh_modeProperty().set(gh_mode);
+	}
+
+	public final BooleanProperty showMeasureNoiseProperty() {
+		return this.showMeasureNoise;
+	}
+	
+
+	public final boolean isShowMeasureNoise() {
+		return this.showMeasureNoiseProperty().get();
+	}
+	
+
+	public final void setShowMeasureNoise(final boolean showMeasureNoise) {
+		this.showMeasureNoiseProperty().set(showMeasureNoise);
+	}
+
+	public final ObjectProperty<AttractorType> attractorTypeProperty() {
+		return this.attractorType;
+	}
+	
+
+	public final AttractorType getAttractorType() {
+		return this.attractorTypeProperty().get();
+	}
+	
+
+	public final void setAttractorType(final AttractorType attractorType) {
+		this.attractorTypeProperty().set(attractorType);
+	}
+
+	public final BooleanProperty showAttractorProperty() {
+		return this.showAttractor;
+	}
+	
+
+	public final boolean isShowAttractor() {
+		return this.showAttractorProperty().get();
+	}
+	
+
+	public final void setShowAttractor(final boolean showAttractor) {
+		this.showAttractorProperty().set(showAttractor);
+	}
+
+	public final BooleanProperty showFilterTrailProperty() {
+		return this.showFilterTrail;
+	}
+	
+
+	public final boolean isShowFilterTrail() {
+		return this.showFilterTrailProperty().get();
+	}
+	
+
+	public final void setShowFilterTrail(final boolean showFilterTrail) {
+		this.showFilterTrailProperty().set(showFilterTrail);
+	}
+	
+	
+	
+	
+	
 	
 	
 	

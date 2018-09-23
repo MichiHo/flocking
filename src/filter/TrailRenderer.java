@@ -45,6 +45,8 @@ public class TrailRenderer extends Group{
 				trail.set(i, new Vec());
 			}
 		});
+
+		setPickOnBounds(false);
 	}
 	
 	/**
@@ -72,11 +74,13 @@ public class TrailRenderer extends Group{
 		getChildren().clear();
 		int length = this.length.get();
 		for(int i = 0; i < length-1; ++i) {
+			if(trail.get((i+index)%length).x<0 || trail.get((i+index+1)%length).x < 0) continue;
 			Line line = new Line(
 					trail.get((i+index)%length).x,
 					trail.get((i+index)%length).y,
 					trail.get((i+index+1)%length).x,
 					trail.get((i+index+1)%length).y);
+			line.setPickOnBounds(false);
 			line.setStroke(stroke.deriveColor(0.0, 1.0, 1.0, ((i+1.0)/length)+0.1));
 			line.setStrokeWidth(width);
 			getChildren().add(line);

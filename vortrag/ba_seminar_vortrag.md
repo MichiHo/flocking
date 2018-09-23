@@ -47,12 +47,18 @@ Big values for $g$ that aren't corrected with big $h$ values can push the filter
 
 If chosen well, the algorithm *filters* Measurement-Noise and leads to smoother and more accurate results in tracking
 
+The **Benedict-Bordner-Filter** is a g-h-filter with $h$ chosen relative to $g$ as $h = \frac{g^2}{2-g}$.
+
 ## Disadvantages
 -   Reacts poorly to more complex acceleration
 
 
 # 3. Kalman-Filter
-Kalman Filter represents state as Propability Distributions with mean $x$ and (co)variance $P$
+*	Kalman Filter represents state as Propability Distributions with mean $x$ and (co)variance $P$
+*	abstracts state transition to any linear operation 
+*	adds **control** vector & model
+*	adds **observation-model** - doesn't assume observations of same unit as state
+*	uses **kalman-gain** to scale each component of the innovation individually, based on covariance
 
 -   State Variables:
 	-   **State** $\hat{x}_k \in \mathbb{R}^n$
@@ -60,9 +66,9 @@ Kalman Filter represents state as Propability Distributions with mean $x$ and (c
 	-   **Kovariance-Matrix** $P_k \in \mathbb{R}^{n\times n}$
 -   Input:
 	-   **Measurement / Sensor Reading** $z_k$ ( generally not of the same unit as $x_k$ )
-	-   **Kovariance of Observation Noise** $R_k$ 
-	-   **Control Vector** $u_k$ beschreibt den deterministischen & bekannten Einfluss auf den Zustand. 
-		-	*z.B. Steuerung der Motoren*
+	-   **Covariance of Observation Noise** $R_k$ 
+	-   **Control Vector** $u_k$ : deterministic and known influence on the state 
+		-	*e.g. motor control voltage*
 	-	
 -   World Model:
 	-   The **Prediction-Matrix (State-transition model)** $F_k \in \mathbb{R}^{n\times n}$ 
@@ -70,7 +76,8 @@ Kalman Filter represents state as Propability Distributions with mean $x$ and (c
 		-	The Prediction-Matrix also converts $P_k$ to $P_{k+1}$
 	-	The **Control-Matrix (Control-input model)** $B_k$ converts the control-vector $u_k$ to the units of the state variable.
 		-	*z.B. Voltagelevel on Engine leading to increased velocity*
-	-	The **Sensor-Matrix(name?) (Observation model)** $H_k$ converts the state-variable to the units of the measurement-vector (in case the sensors use different units than the kalman filter's state model)
+	-	The **Observation model** $H_k$ converts the state-variable to the units of the measurement-vector (in case the sensors use different units than the kalman filter's state model)
+	-	**Covariance of Process Noise** $Q_k$
 	-	The **Kalman-Gain** $\hat{K}_k$ scales the Residual in proportion to the prediction by evaluating the current sensor-accuracy
 
 ## Theory
@@ -81,4 +88,7 @@ Kalman Filter represents state as Propability Distributions with mean $x$ and (c
 	2.	the entering noise is white (uncorrelated) 
 	3.	the covariances of the noise are exactly known
 
-## 3.n Measuring
+## Markov Model (probability theory)
+
+-	stochastic model for randomly changing systems
+-	**markov property** : future state(s) depend only on current
