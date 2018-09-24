@@ -67,13 +67,14 @@ for fully observable systems
 *	Observed Variable $x_k \in S$ at step $k$
 *	Markov Chain = chain $x_k \in S , k \in \{1,2,...\}$
 *	■ ■ **markov property** : future state(s) depend only on current
-
+*	Instead of hidden state variable, the probability for each state is stored
 
 *	■ Transition-probabilities: Matrix $F_k$ between states
 	*	per Timestep $k$ 
 	*	or globally, if *time-homogeneous*
 
 *	If S is finite -> directed graph, nodes in $S$, edges the probability
+	-	simple **Dynamic Bayesian Network**
 *	■ **EXAMPLE** ■ ■ ■ ■
 *	other example: PageRank algorithm by Google
 
@@ -82,27 +83,69 @@ for partially observable systems!
 
 -	Not the state variables $x \in S$ are observable, just **output tokens** $z$ that depend on the state ■
 	-	■ **emission probabilities**: probability-dist of observed variable (tokens) over hidden states $p(z | x)$
-		-	often recieved as **a-posteriori** - infered from $p(z|y)$	
-	-	sequence of tokens gives only **some** information.
--	Instead of hidden state variable, the probability for each state is stored
-
--	can be represented as simple **Dynamic Bayesian Network** (Transition probabilities from one *explicit* time to the next timestep).
+		-	interesting for filtering: **a-posteriori** - $p(x | z)$ get state from emission	
+	-	sequence of tokens/emissions gives only **some** information.
 
 examples 
--	reinforcement learning
 -	pattern recognition (speech, handwriting, gestures)
+-	reinforcement learning
 -	bioinformatics
 
 
 
 
 # Kalman-Filter
-*	Kalman Filter represents state as Propability Distributions with mean $x$ and (co)variance $P$
-*	abstracts state transition to any linear operation 
+## Theory
+**From HMM** ■
+*	■ The model of the Kalman-Filter is closely related to the HMM
+*	■ only in continuous space and adding **control** and **process noise**
+*	state now as Propability Distributions with mean $x$ and (co)variance $P$
+*	state transition now operates on mean statespace directly, not on probabilities of states
+
+**From G-H-Filter** ■
+*	now uses *one* state vector for all
+*	allows *any* linear operation on state vars
 *	adds **control** vector & model
 *	adds **observation-model** - doesn't assume observations of same unit as state
 *	$g$ and $h$ are now time-dependent and functions of (co)variances of both measurement and prior state
-	-> **kalman-gain** scales each component of the innovation individually
+	-> now called **kalman-gain** : scales each component of the innovation individually
+
+
+### World-Model ■
+-   The **Prediction-Matrix (State-transition model)** $F_k \in \mathbb{R}^{n\times n}$ 
+	-   converts $\hat{x}_k$ to $\hat{x}_{k+1}$. This can be used to realize position & velocity as in the g-h-filter, but also *Acceleration* or rather derivations of any degree.
+	-	The Prediction-Matrix also converts $P_k$ to $P_{k+1}$
+-   **Control Vector** $u_k$ : deterministic and known influence on the state 
+-	The **Control-Matrix (Control-input model)** $B_k$ converts the control-vector $u_k$ to the units of the state variable.
+	-	*z.B. Voltagelevel on Engine leading to increased velocity*
+-	Some **Process Noise** is assumed in every step. mean 0, cov $Q_k$. Only cov used
+
+### Observation-Model ■
+-   **Measurement / Sensor Reading** $z_k$ ( generally not of the same unit as $x_k$ )
+-	The **Observation model** $H_k$ converts the state-variable to the units of the measurement-vector (in general the sensors use different units than the kalman filter's state model)
+	-	*For example a gps measures position but not velocity, some in feet others in meters...*
+-   **Observation noise** = imprecision of sensors with **Covariance** $R_k$, only this used
+
+■ (diagram with formulas)
+
+## Kalman Filter Process
+
+### 0. Past state ■
+ 
+### 1. Prediction ■
+-	Changes estimated filter state analog to assumed real change
+
+### 2. Update ■
+**Innovation (Residual)**
+-	mean (in observe-space) - observation minus assumed obs from prediction
+-	cov (in observe-space) - sensorCov minus assumed cov from prediction
+-	■ The **Kalman-Gain** $K_k$ scales the Residual in proportion to the prediction **like g and h** only dynamically, proportional to increase in precision ($cov^{-1}) by new sensor readings
+
+**New best estimates** ■
+-	new mean analog to g-h-filter only with kalman gain
+-	new covariance 
+
+**Overview of Variables** in Diagram ■
 
 ## 1-D example
 In 1-D with state estimate $(x_{k | k-1},Var(x_{k | k-1}))$ comes measurement $(y_k,Var(y_k))$.
@@ -112,27 +155,6 @@ Weigh both with the **inverse Variance** (higher Var -> lower Precision) to reci
 $$x_{k|k} = \frac{Var^{-1}(x_{k|k-1})x_{k|k-1} + Var^{-1}(y_{k})y_{k}}
 {Var^{-1}(x_{k|k-1}) + Var^{-1}(y_{k})}$$
 
-## Model
-
--   State Variables:
-	-   **State** $\hat{x}_k \in \mathbb{R}^n$
-		-   *z.B. Position, Geschwindigkeit*
-	-   **Kovariance-Matrix** $P_k \in \mathbb{R}^{n\times n}$
--   Input:
-	-   **Measurement / Sensor Reading** $z_k$ ( generally not of the same unit as $x_k$ )
-	-   **Covariance of Observation Noise** $R_k$ 
-	-   **Control Vector** $u_k$ : deterministic and known influence on the state 
-		-	*e.g. motor control voltage*
-	-	
--   World Model:
-	-   The **Prediction-Matrix (State-transition model)** $F_k \in \mathbb{R}^{n\times n}$ 
-		-   converts $\hat{x}_k$ to $\hat{x}_{k+1}$. This can be used to realize position & velocity as in the g-h-filter, but also *Acceleration* or rather derivations of any degree.
-		-	The Prediction-Matrix also converts $P_k$ to $P_{k+1}$
-	-	The **Control-Matrix (Control-input model)** $B_k$ converts the control-vector $u_k$ to the units of the state variable.
-		-	*z.B. Voltagelevel on Engine leading to increased velocity*
-	-	The **Observation model** $H_k$ converts the state-variable to the units of the measurement-vector (in case the sensors use different units than the kalman filter's state model)
-	-	**Covariance of Process Noise** $Q_k$
-	-	The **Kalman-Gain** $\hat{K}_k$ scales the Residual in proportion to the prediction by evaluating the current sensor-accuracy
 
 ## Notes
 -	Kalman Filter is a common **Sensor Fusion** Algorithm
