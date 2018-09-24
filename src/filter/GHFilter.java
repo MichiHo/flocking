@@ -47,7 +47,7 @@ public class GHFilter {
 		trail.setStrokeWidth(3.0);
 		trail.visibleProperty().bind(MainWindow.data.showFilterTrailProperty());
 		visual.getChildren().add(trail);
-		visual.getChildren().add(dot);
+		//visual.getChildren().add(dot);
 	}
 	
 	public void step(List<Double> measures, double timeFactor) {

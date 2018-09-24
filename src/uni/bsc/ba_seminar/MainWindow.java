@@ -1,24 +1,25 @@
 package uni.bsc.ba_seminar;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Vector;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleFactory2D;
-import filter.Attractor;
 import filter.GHFilter;
-import filter.KalmanFilter;
 import filter.TrailRenderer;
+import org.apache.commons.math3.filter.KalmanFilter;
+import org.apache.commons.math3.filter.MeasurementModel;
+import org.apache.commons.math3.filter.ProcessModel;
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
@@ -66,6 +67,7 @@ import javafx.scene.paint.Paint;
 import javafx.scene.paint.RadialGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 import uni.bsc.ba_seminar.DataModel.AttractorType;
 import uni.bsc.ba_seminar.DataModel.GHFilterMode;
@@ -92,6 +94,7 @@ public class MainWindow extends Application {
 	private TrailRenderer positionTrail = new TrailRenderer(300);
 	private Circle kalmanDot = new Circle(0.0, 0.0, 3.0, Color.CYAN);
 	private TrailRenderer kalmanTrail = new TrailRenderer(300);
+	private Line kalmanPredict = new Line();
 	private GridPane menuPane;
 	
 	// For simulating lower-frequency measuring
@@ -100,30 +103,104 @@ public class MainWindow extends Application {
 	
 	private GHFilter ghfilter;
 	private KalmanFilter kalmanfilter;
+	RealMatrix stateTransition = new Array2DRowRealMatrix(new double [][]{
+		{1.0,0.0,1.0,0.0},		// x = x + t*dx
+		{0.0,1.0,0.0,1.0},		// y = y + t*dy
+		{0.0,0.0,1.0,0.0},		// dx = dx
+		{0.0,0.0,0.0,1.0}});
+	
+	RealMatrix stateTransitionAcc = new Array2DRowRealMatrix(new double [][]{
+		{1.0,0.0,1.0,0.0,0.5,0.0},		// x = x + t*dx
+		{0.0,1.0,0.0,1.0,0.0,0.5},		// y = y + t*dy
+		{0.0,0.0,1.0,0.0,1.0,0.0},		
+		{0.0,0.0,0.0,1.0,0.0,1.0},		
+		{0.0,0.0,0.0,0.0,1.0,0.0},		
+		{0.0,0.0,0.0,0.0,0.0,1.0}});
+	
+	RealMatrix processNoise = new Array2DRowRealMatrix(new double [][]{
+		{0.1,0.0,0.0,0.0},		// x = x + t*dx
+		{0.0,0.1,0.0,0.0},		// y = y + t*dy
+		{0.0,0.0,0.1,0.0},		
+		{0.0,0.0,0.0,0.1}});
+	
+	RealMatrix processNoise6 = new Array2DRowRealMatrix(new double [][]{
+		{0.1,0.0,0.0,0.0,0.0,0.0},		// x = x + t*dx
+		{0.0,0.1,0.0,0.0,0.0,0.0},		// y = y + t*dy
+		{0.0,0.0,0.1,0.0,0.0,0.0},		
+		{0.0,0.0,0.0,0.1,0.0,0.0},		
+		{0.0,0.0,0.0,0.0,0.1,0.0},		
+		{0.0,0.0,0.0,0.0,0.0,0.1}});
+	
+	RealMatrix observationModel = new Array2DRowRealMatrix(new double [][]{
+		{1.0,0.0,0.0,0.0},
+		{0.0,1.0,0.0,0.0}});
+	
+	RealMatrix observationNoise = new Array2DRowRealMatrix(new double [][]{
+		{0.0,0.0},
+		{0.0,0.0}});
+	
 	
 	private List<Boid> boids;
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		ghfilter = new GHFilter(2);
-		kalmanfilter = new KalmanFilter(4);
-		kalmanfilter.setObservationModel(DoubleFactory2D.dense.make(
-				new double [][]{
-					{1.0,0.0,0.0,0.0},	// apply x
-					{0.0,1.0,0.0,0.0}}	// apply y
-					));
-		kalmanfilter.setStateTransitionModel(DoubleFactory2D.dense.make(
-				new double [][]{
-					{1.0,0.0,1.0,0.0},		// x = x + t*dx
-					{0.0,1.0,0.0,1.0},		// y = y + t*dy
-					{0.0,0.0,1.0,0.0},		// dx = dx
-					{0.0,0.0,0.0,1.0}} ));	// dy = dy
-		kalmanfilter.setProcessNoise(DoubleFactory2D.dense.make(
-				new double [][]{
-					{1.0, 0.2, 0.0, 0.0},		// x = x + t*dx
-					{0.2, 1.0, 0.0, 0.0},		// y = y + t*dy
-					{0.0, 0.0, 1.0, 0.0},		// dx = dx
-					{0.0, 0.0, 0.0, 1.0}} ));	// dy = dy
-		
+		kalmanfilter = new KalmanFilter(new ProcessModel() {
+			
+			@Override
+			public RealMatrix getStateTransitionMatrix() {
+				return stateTransition;
+			}
+			
+			@Override
+			public RealMatrix getProcessNoise() {
+				return processNoise;
+			}
+			
+			@Override
+			public RealVector getInitialStateEstimate() {
+				return null;
+			}
+			
+			@Override
+			public RealMatrix getInitialErrorCovariance() {
+				return null;
+			}
+			
+			@Override
+			public RealMatrix getControlMatrix() {
+				return null;
+			}
+		}, new MeasurementModel() {
+			
+			@Override
+			public RealMatrix getMeasurementNoise() {
+				return observationNoise;
+			}
+			
+			@Override
+			public RealMatrix getMeasurementMatrix() {
+				return observationModel;
+			}
+		});
+//		kalmanfilter = new KalmanFilter(4);
+//		kalmanfilter.setObservationModel(DoubleFactory2D.dense.make(
+//				new double [][]{
+//					{1.0,0.0,0.0,0.0},	// apply x
+//					{0.0,1.0,0.0,0.0}}	// apply y
+//					));
+//		kalmanfilter.setStateTransitionModel(DoubleFactory2D.dense.make(
+//				new double [][]{
+//					{1.0,0.0,1.0,0.0},		// x = x + t*dx
+//					{0.0,1.0,0.0,1.0},		// y = y + t*dy
+//					{0.0,0.0,1.0,0.0},		// dx = dx
+//					{0.0,0.0,0.0,1.0}} ));	// dy = dy
+//		kalmanfilter.setProcessNoise(DoubleFactory2D.dense.make(
+//				new double [][]{
+//					{1.0, 0.2, 0.0, 0.0},		// x = x + t*dx
+//					{0.2, 1.0, 0.0, 0.0},		// y = y + t*dy
+//					{0.0, 0.0, 1.0, 0.0},		// dx = dx
+//					{0.0, 0.0, 0.0, 1.0}} ));	// dy = dy
+//		
 		cores = Runtime.getRuntime().availableProcessors();
 		primaryStage.setResizable(true);
 		primaryStage.setHeight(height);
@@ -457,15 +534,24 @@ public class MainWindow extends Application {
 		btnKalmanSet.setOnAction(e->{
 			if(boids.size()<1) return;
 			Boid b = boids.get(0);
-			kalmanfilter.setState(DoubleFactory1D.dense.make(new double[] 
-					{b.getPos().x, b.getPos().y,
-					 b.getVel().x, b.getVel().y}), 
-					DoubleFactory2D.dense.make(
-							new double [][]{
-								{0.0,0.0,0.0,0.0},	// apply x
-								{0.0,0.0,0.0,0.0},	// apply y
-								{0.0,0.0,0.0,0.0},
-								{0.0,0.0,0.0,0.0}} ));
+			RealMatrix m = observationNoise;
+			
+			observationNoise = new Array2DRowRealMatrix(new double [][]{
+				{0.0,0.0},
+				{0.0,0.0}});
+			kalmanfilter.correct(new double[] 
+					{b.getPos().x, b.getPos().y});
+			observationNoise = m;
+			
+//			kalmanfilter.setState(DoubleFactory1D.dense.make(new double[] 
+//					{b.getPos().x, b.getPos().y,
+//					 b.getVel().x, b.getVel().y}), 
+//					DoubleFactory2D.dense.make(
+//							new double [][]{
+//								{0.0,0.0,0.0,0.0},	// apply x
+//								{0.0,0.0,0.0,0.0},	// apply y
+//								{0.0,0.0,0.0,0.0},
+//								{0.0,0.0,0.0,0.0}} ));
 		});
 		filterMenu.add(btnKalmanSet, 0, row++);
 		
@@ -488,28 +574,37 @@ public class MainWindow extends Application {
 		canvasStack.getChildren().add(canvas);
 		
 		Pane filterVisuals = new Pane();
-		filterVisuals.getChildren().add(ghfilter.getVisual());
-		ghfilter.bindTrailLength(data.globalTrailLengthProperty());
-		measureTrail.setStroke(new Color(0.0, 0.0, 0.0, 0.5));
-		measureTrail.lengthProperty().bind(data.globalTrailLengthProperty());
+		positionTrail.setStroke(Color.GRAY);
+		positionTrail.setStrokeWidth(4.0);
+		positionTrail.lengthProperty().bind(data.globalTrailLengthProperty().multiply(2.0));
+		filterVisuals.getChildren().add(positionTrail);
+		
+		measureTrail.setStroke(new Color(0.0, 0.0, 0.0, 0.3));
+		measureTrail.lengthProperty().bind(data.globalTrailLengthProperty().multiply(0.3));
 		filterVisuals.getChildren().add(measureDot);
 		filterVisuals.getChildren().add(measureTrail);
 		filterVisuals.getChildren().add(measureNoiseCircle);
-		positionTrail.setStroke(Color.GREEN);
-		positionTrail.setStrokeWidth(3.0);
-		positionTrail.lengthProperty().bind(data.globalTrailLengthProperty().multiply(2.0));
-		filterVisuals.getChildren().add(positionTrail);
-		filterVisuals.getChildren().add(data.getAttractorType().attractor.getVisual()); 
+		
+		ghfilter.bindTrailLength(data.globalTrailLengthProperty());
+		filterVisuals.getChildren().add(ghfilter.getVisual());
+		
 		kalmanTrail.lengthProperty().bind(data.globalTrailLengthProperty());
-		kalmanTrail.setStroke(Color.CYAN);
+		kalmanTrail.setStroke(Color.GREEN);
+		kalmanTrail.setStrokeWidth(3.0);
 		kalmanTrail.visibleProperty().bind(data.kalman_activeProperty());
+		kalmanPredict.visibleProperty().bind(data.kalman_activeProperty());
+		kalmanPredict.setStroke(Color.GREEN);
+		kalmanPredict.getStrokeDashArray().addAll(3.0,5.0);
+		kalmanPredict.setStrokeWidth(3.0);
 		kalmanDot.visibleProperty().bind(data.kalman_activeProperty());
-		filterVisuals.getChildren().add(kalmanDot);
+//		filterVisuals.getChildren().add(kalmanDot);
 		filterVisuals.getChildren().add(kalmanTrail);
+		filterVisuals.getChildren().add(kalmanPredict);
 		data.attractorTypeProperty().addListener((c,o,n)->{
 			filterVisuals.getChildren().remove(o.attractor.getVisual());
 			filterVisuals.getChildren().add(n.attractor.getVisual());
 		});
+		filterVisuals.getChildren().add(data.getAttractorType().attractor.getVisual()); 
 		filterVisuals.setMouseTransparent(true);
 		canvasStack.getChildren().add(filterVisuals);
 		root.setCenter(canvasStack);
@@ -620,15 +715,33 @@ public class MainWindow extends Application {
 					if(data.isGh_active()) ghfilter.step(measure, measureTimeFactorAccum); // oder deltaTime?
 					
 					if(data.isKalman_active()) {
-						kalmanfilter.step(DoubleFactory1D.dense.make(new double[] 
-								{measure.get(0), measure.get(1)}),
-								DoubleFactory2D.dense.make(new double [][]{
-								{data.noiseProperty().get()*data.noiseProperty().get(), 0.01},
-								{0.01, data.noiseProperty().get()*data.noiseProperty().get()}} ),null);
-						Vec kalmanPos = new Vec(kalmanfilter.getState().get(0),kalmanfilter.getState().get(1));
+//						kalmanfilter.step(DoubleFactory1D.dense.make(new double[] 
+//								{measure.get(0), measure.get(1)}),
+//								DoubleFactory2D.dense.make(new double [][]{
+//									{data.noiseProperty().get()*data.noiseProperty().get(), 0.0},
+//									{0.0, data.noiseProperty().get()*data.noiseProperty().get()}} ),null);
+						
+//						observationNoise = new Array2DRowRealMatrix(new double [][]{
+//								{data.noiseProperty().get()*data.noiseProperty().get(), 0.0},
+//								{0.0, data.noiseProperty().get()*data.noiseProperty().get()}});
+						observationNoise = new Array2DRowRealMatrix(new double [][]{
+							{data.noiseProperty().get(), 0.0},
+							{0.0, data.noiseProperty().get()}});
+						
+						kalmanfilter.correct(new double[] {measure.get(0), measure.get(1)});
+						double [] result = kalmanfilter.getStateEstimation();
+						
+						Vec kalmanPos = new Vec(result[0],result[1]);
 						kalmanDot.setCenterX(kalmanPos.x);
 						kalmanDot.setCenterY(kalmanPos.y);
 						kalmanTrail.push(kalmanPos);
+						
+						kalmanfilter.predict();
+						double [] predict = kalmanfilter.getStateEstimation();
+						kalmanPredict.setStartX(result[0]);
+						kalmanPredict.setStartY(result[1]);
+						kalmanPredict.setEndX(predict[0]);
+						kalmanPredict.setEndY(predict[1]);
 					}
 					
 					measureFrameCount = 0;
