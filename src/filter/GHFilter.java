@@ -26,7 +26,7 @@ public class GHFilter {
 	
 	private Group visual;
 	private TrailRenderer trail = new TrailRenderer(300);
-	private Circle dot = new Circle(0.0,0.0,6.0, Color.RED);;
+	private Circle dot = new Circle(0.0,0.0,8.0, Color.RED);;
 	
 	public GHFilter(int dimension) {
 		if(dimension<0) throw new IllegalArgumentException();
@@ -44,7 +44,7 @@ public class GHFilter {
 		visual.visibleProperty().bind(MainWindow.data.gh_activeProperty());
 		visual.setPickOnBounds(false);
 		trail.setStroke(Color.RED);
-		trail.setStrokeWidth(1.0);
+		trail.setStrokeWidth(3.0);
 		trail.visibleProperty().bind(MainWindow.data.showFilterTrailProperty());
 		visual.getChildren().add(trail);
 		visual.getChildren().add(dot);

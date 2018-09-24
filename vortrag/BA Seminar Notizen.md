@@ -3,9 +3,7 @@ BA Seminar Notizen
 
 
 # Implementierng verbessern
--	Verrauschtes Sample besser als Kreis (Kovarianz) anzeigen?
--	Gauß-Noise statt gleichverteilt
--	Attraktor für getrackted boid um den filter besser zu sehen
+-	Richtungsvektor vom Filter anzeigen
 -	Alles größer Skalieren
 
 

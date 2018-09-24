@@ -496,7 +496,8 @@ public class MainWindow extends Application {
 		filterVisuals.getChildren().add(measureTrail);
 		filterVisuals.getChildren().add(measureNoiseCircle);
 		positionTrail.setStroke(Color.GREEN);
-		positionTrail.lengthProperty().bind(data.globalTrailLengthProperty());
+		positionTrail.setStrokeWidth(3.0);
+		positionTrail.lengthProperty().bind(data.globalTrailLengthProperty().multiply(2.0));
 		filterVisuals.getChildren().add(positionTrail);
 		filterVisuals.getChildren().add(data.getAttractorType().attractor.getVisual()); 
 		kalmanTrail.lengthProperty().bind(data.globalTrailLengthProperty());
@@ -605,8 +606,8 @@ public class MainWindow extends Application {
 					measureTimeFactorAccum+= deltaTime;
 				} else {
 					
-					boids.get(0).getVisual().setScaleX(2.0);
-					boids.get(0).getVisual().setScaleY(2.0);
+					boids.get(0).getVisual().setScaleX(3.0);
+					boids.get(0).getVisual().setScaleY(3.0);
 					boids.get(0).recolor(Color.BLUE);
 					measureNoiseCircle.setCenterX(boids.get(0).getPos().x);
 					measureNoiseCircle.setCenterY(boids.get(0).getPos().y);

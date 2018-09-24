@@ -4,7 +4,7 @@ geometry: margin=1.0cm
 papersize: a4
 ---
 
-# Struktur
+# Overview ■
 
 1.  Introduction
 	*   Examples?
@@ -14,44 +14,86 @@ papersize: a4
 5.  Outlook: Extended / Unscented Kalman Filter
 6.  End.
 
+# Introduction ■
+*	Assume we track sth from above (2D)
+*	vel+pos -> predict ■
+*	now we get new sensor data - what to do? ■
+*	result: weighted mean value ■
+*	Concept: Combine inaccurate measures and worldmodel-based predictions to achieve better accuracy.
+*	later: variance / imprecision part of the model ■
+*	result: new mean & variance ■
 
--   Hidden Markov model?
-
-# Introduction
-
-*   Concept of the presented filters: Combine inaccurate measures and worldmodel-based predictions to achieve better accuracy.
-*   Use case: **Tracking** of real Objects 
-
-# G-H-Filter
-
--   State variables:
+# G-H-Filter ■
+-	this mechanism is the gh-filter
+-   State variables: ■
 	-   $\hat{x}_k$ like position
 	-   $\hat{v}_k$ like velocity
 -   Input:
 	-   Measures $x_k$
 -   World Model: 
-	-   $\hat{x}_k$ is being predicted each time interval $\Delta t$ as 
-		$\hat{x}_k = \hat{x}_{k-1} + \Delta t \cdot \hat{v}_{k-1}$
--   The Update-step with assumedly inaccurate measure $x_k$ uses the **Residual** $\hat{r}_k = x_k - \hat{x}_k$ scaled by **Parameters $g$ and $h$** to correct predictions:
+	-   constant velocity
+-   **Predict**: $\hat{x}_k$ in $\Delta t$ becomes $\hat{x}_k = \hat{x}_{k-1} + \Delta t \cdot \hat{v}_{k-1}$ ■
+-   The Update-step with assumedly inaccurate measure $x_k$ uses the **Residual** $\hat{r}_k = x_k - \hat{x}_k$ scaled by **Parameters $g$ and $h$** to correct predictions: ■
 	-   $\hat{x}_k = \hat{x}_{k-1} + \Delta t \cdot \hat{v}_{k-1} + g\cdot \hat{r}_k$
 	-   $\hat{v}_k = \hat{v}_{k-1}  + \frac{h}{\Delta t}\cdot \hat{r}_k$
 
-## Notes
+## Notes []
 -	G-H-Filter is also used to *predict*: after update comes next predict already, with time-constant used.
 	-	many sensors (radar, etc) measure in constant intervals.
 
-## Choice of $g$ and $h$
-Big Parameters match transients but also emphasize noise.
-Small Parameters reduce noise but might lead to divergence from real position.
-
-Big values for $g$ that aren't corrected with big $h$ values can push the filter into Resonance and make the velocity increase unreasonably fast.
-
-If chosen well, the algorithm *filters* Measurement-Noise and leads to smoother and more accurate results in tracking
-
-The **Benedict-Bordner-Filter** is a g-h-filter with $h$ chosen relative to $g$ as $h = \frac{g^2}{2-g}$.
+## Choice of $g$ and $h$ ■
+*	■ Small g, small(no) h -> noise reduced, but lagging
+*	■ Large g, no h -> no noise reduction.. no filtering
+*	■ no g, larger h -> total divergence
+*	■ decent choices -> decent tracking and great noise reduction
+*	■ last choice = Benedict-Bordner. Reduces transient error given $g$
 
 ## Disadvantages
--   Reacts poorly to more complex acceleration
+-   Acceleration not part of the model
+
+
+
+
+
+# HMM
+
+## Markov Model (probability theory)
+
+-	stochastic model for randomly changing systems
+## Markov Chain ■
+for fully observable systems
+
+*	State-Space $S$ : **countable** and often finite
+*	Observed Variable $x_k \in S$ at step $k$
+*	Markov Chain = chain $x_k \in S , k \in \{1,2,...\}$
+*	■ ■ **markov property** : future state(s) depend only on current
+
+
+*	■ Transition-probabilities: Matrix $F_k$ between states
+	*	per Timestep $k$ 
+	*	or globally, if *time-homogeneous*
+
+*	If S is finite -> directed graph, nodes in $S$, edges the probability
+*	■ **EXAMPLE** ■ ■ ■ ■
+*	other example: PageRank algorithm by Google
+
+## Hidden Markov Model ■
+for partially observable systems!
+
+-	Not the state variables $x \in S$ are observable, just **output tokens** $z$ that depend on the state ■
+	-	■ **emission probabilities**: probability-dist of observed variable (tokens) over hidden states $p(z | x)$
+		-	often recieved as **a-posteriori** - infered from $p(z|y)$	
+	-	sequence of tokens gives only **some** information.
+-	Instead of hidden state variable, the probability for each state is stored
+
+-	can be represented as simple **Dynamic Bayesian Network** (Transition probabilities from one *explicit* time to the next timestep).
+
+examples 
+-	reinforcement learning
+-	pattern recognition (speech, handwriting, gestures)
+-	bioinformatics
+
+
 
 
 # Kalman-Filter
@@ -100,34 +142,3 @@ $$x_{k|k} = \frac{Var^{-1}(x_{k|k-1})x_{k|k-1} + Var^{-1}(y_{k})y_{k}}
 	2.	the entering noise is white (uncorrelated) 
 	3.	the covariances of the noise are exactly known
 
-# HMM
-
-## Markov Model (probability theory)
-
--	stochastic model for randomly changing systems
--	**markov property** : future state(s) depend only on current
-## Markov Chain
-for fully observable systems
-
-= sequence of random variables $x \in S$ with **countable** and often finite State-Space $S$
-
-Transitions between states are given per Timestep (or globally, if *time-homogeneous*)
-
--	If S is finite -> directed graph, nodes in $S$, edges the probability
--	or Transition Matrix
-example: PageRank algorithm by Google
-
-## Hidden Markov Model
-for partially observable systems!
-
--	Not the state variables $x \in S$ are observable, just **output tokens** $z$ that depend on the state
-	-	Each state $x$ has probability-dist over possible tokens $p(x | z)$
-	-	sequence of tokens gives only **some** information.
--	Instead of hidden state variable, the probability for each state is stored
-
--	can be represented as simple **Dynamic Bayesian Network** (Transition probabilities from one *explicit* time to the next timestep).
-
-examples 
--	reinforcement learning
--	pattern recognition (speech, handwriting, gestures)
--	bioinformatics
