@@ -111,12 +111,6 @@ public class MainWindow extends Application {
 					{1.0,0.0,0.0,0.0},	// apply x
 					{0.0,1.0,0.0,0.0}}	// apply y
 					));
-		System.out.println("o" + DoubleFactory2D.dense.make(
-				new double [][]{
-					{1.0,0.0},	// apply x
-					{0.0,1.0},	// apply y
-					{0.0,0.0},
-					{0.0,0.0}} ).columns());
 		kalmanfilter.setStateTransitionModel(DoubleFactory2D.dense.make(
 				new double [][]{
 					{1.0,0.0,1.0,0.0},		// x = x + t*dx
@@ -131,7 +125,6 @@ public class MainWindow extends Application {
 					{0.0, 0.0, 0.0, 1.0}} ));	// dy = dy
 		
 		cores = Runtime.getRuntime().availableProcessors();
-		System.out.println("cores:"+cores);
 		primaryStage.setResizable(true);
 		primaryStage.setHeight(height);
 		primaryStage.setWidth(width);
@@ -469,10 +462,10 @@ public class MainWindow extends Application {
 					 b.getVel().x, b.getVel().y}), 
 					DoubleFactory2D.dense.make(
 							new double [][]{
-								{1.0,0.0,0.0,0.0},	// apply x
-								{0.0,1.0,0.0,0.0},	// apply y
-								{0.0,0.0,1.0,0.0},
-								{0.0,0.0,0.0,1.0}} ));
+								{0.0,0.0,0.0,0.0},	// apply x
+								{0.0,0.0,0.0,0.0},	// apply y
+								{0.0,0.0,0.0,0.0},
+								{0.0,0.0,0.0,0.0}} ));
 		});
 		filterMenu.add(btnKalmanSet, 0, row++);
 		

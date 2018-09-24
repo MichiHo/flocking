@@ -9,19 +9,20 @@ papersize: a4
 1.  Introduction
 	*   Examples?
 2.  g-h-Filter
-3.  Kalman-Filter
-4.  Outlook: Extended / Unscented Kalman Filter
-5.  End.
+3.  HMM
+4.  Kalman-Filter
+5.  Outlook: Extended / Unscented Kalman Filter
+6.  End.
 
 
 -   Hidden Markov model?
 
-# 1. Introduction
+# Introduction
 
 *   Concept of the presented filters: Combine inaccurate measures and worldmodel-based predictions to achieve better accuracy.
 *   Use case: **Tracking** of real Objects 
 
-# 2. G-H-Filter
+# G-H-Filter
 
 -   State variables:
 	-   $\hat{x}_k$ like position
@@ -53,12 +54,23 @@ The **Benedict-Bordner-Filter** is a g-h-filter with $h$ chosen relative to $g$ 
 -   Reacts poorly to more complex acceleration
 
 
-# 3. Kalman-Filter
+# Kalman-Filter
 *	Kalman Filter represents state as Propability Distributions with mean $x$ and (co)variance $P$
 *	abstracts state transition to any linear operation 
 *	adds **control** vector & model
 *	adds **observation-model** - doesn't assume observations of same unit as state
-*	uses **kalman-gain** to scale each component of the innovation individually, based on covariance
+*	$g$ and $h$ are now time-dependent and functions of (co)variances of both measurement and prior state
+	-> **kalman-gain** scales each component of the innovation individually
+
+## 1-D example
+In 1-D with state estimate $(x_{k | k-1},Var(x_{k | k-1}))$ comes measurement $(y_k,Var(y_k))$.
+
+Weigh both with the **inverse Variance** (higher Var -> lower Precision) to recieve:
+
+$$x_{k|k} = \frac{Var^{-1}(x_{k|k-1})x_{k|k-1} + Var^{-1}(y_{k})y_{k}}
+{Var^{-1}(x_{k|k-1}) + Var^{-1}(y_{k})}$$
+
+## Model
 
 -   State Variables:
 	-   **State** $\hat{x}_k \in \mathbb{R}^n$
@@ -80,7 +92,7 @@ The **Benedict-Bordner-Filter** is a g-h-filter with $h$ chosen relative to $g$ 
 	-	**Covariance of Process Noise** $Q_k$
 	-	The **Kalman-Gain** $\hat{K}_k$ scales the Residual in proportion to the prediction by evaluating the current sensor-accuracy
 
-## Theory
+## Notes
 -	Kalman Filter is a common **Sensor Fusion** Algorithm
 -	Kalman Filter analogous to Hidden Markov Model but with **continous** hidden variables
 -	Kalman Filter is optimal linear filter, assumed
@@ -88,11 +100,13 @@ The **Benedict-Bordner-Filter** is a g-h-filter with $h$ chosen relative to $g$ 
 	2.	the entering noise is white (uncorrelated) 
 	3.	the covariances of the noise are exactly known
 
+# HMM
+
 ## Markov Model (probability theory)
 
 -	stochastic model for randomly changing systems
 -	**markov property** : future state(s) depend only on current
-### Markov Chain
+## Markov Chain
 for fully observable systems
 
 = sequence of random variables $x \in S$ with **countable** and often finite State-Space $S$
@@ -103,12 +117,13 @@ Transitions between states are given per Timestep (or globally, if *time-homogen
 -	or Transition Matrix
 example: PageRank algorithm by Google
 
-### Hidden Markov Model
+## Hidden Markov Model
 for partially observable systems!
 
 -	Not the state variables $x \in S$ are observable, just **output tokens** $z$ that depend on the state
 	-	Each state $x$ has probability-dist over possible tokens $p(x | z)$
 	-	sequence of tokens gives only **some** information.
+-	Instead of hidden state variable, the probability for each state is stored
 
 -	can be represented as simple **Dynamic Bayesian Network** (Transition probabilities from one *explicit* time to the next timestep).
 
