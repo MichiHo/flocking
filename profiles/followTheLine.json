@@ -20,9 +20,12 @@
   "gh_active" : true,
   "gh_g" : 0.1,
   "gh_h" : 0.0,
-  "globalTrailLength" : 300,
-  "showMeasureTrail" : false,
+  "kalman_active" : true,
+  "kalman_noise_scale" : 8.205696202531643,
+  "globalTrailLength" : 50,
   "showPositionTrail" : false,
+  "showMeasureTrail" : false,
+  "showFilterTrail" : true,
   "showMeasureNoise" : true,
   "showAttractor" : true
 }

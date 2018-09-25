@@ -7,10 +7,35 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import uni.bsc.ba_seminar.Vec;
 
+/**
+ * Describes a point following a curve given as
+ * {@link AttractorCurve}-function. The function
+ * is assumed periodic (by default to <code>2*PI</code>).
+ * 
+ * Has as internal state the current time-position and
+ * is updated via {@link Attractor#timeStep(double)} given
+ * the time-difference that passed. 
+ * 
+ * Retrieve the position any time via {@link Attractor#position()}.
+ * 
+ * @author Michael Hochmuth
+ *
+ */
 public class Attractor {
 	public AttractorCurve curve;
-	public DoubleProperty scale = new SimpleDoubleProperty(1.0);
-	public DoubleProperty speed = new SimpleDoubleProperty(0.04);
+	/**
+	 * Scale multiplied to the curve's position before adding the offset
+	 */
+	public final DoubleProperty scale = new SimpleDoubleProperty(1.0);
+	/**
+	 * Allows adjustment to the speed the curve is followed in time.
+	 * 
+	 */
+	public final DoubleProperty speed = new SimpleDoubleProperty(0.04);
+	
+	/**
+	 * Offset added to the curve's current position.
+	 */
 	public Vec offset = new Vec();
 	
 	private Group visual;
@@ -18,28 +43,58 @@ public class Attractor {
 	
 	private double t = 0.0, period = Math.PI*2.0;
 	
+	/**
+	 * Creates a new Attractor driving the given {@link AttractorCurve}
+	 * function in the Range <code>[0,2*PI]</code> as time progresses.
+	 * 
+	 * @param curve Underlying curve to use.
+	 */
 	public Attractor(AttractorCurve curve) {
 		this.curve = curve;
 		visual = new Group();
 		visual.getChildren().add(new Circle(5.0, new Color(0.0, 0.0, 0.0, 0.5)));
 	}
 	
+	/**
+	 * Advance the curves state by the given time-difference.
+	 * The speed-value is taken into account, altering the period
+	 * of the curve's position over time.
+	 * 
+	 * @param deltaTime
+	 */
 	public void timeStep(double deltaTime) {
 		t = (t+deltaTime*speed.get()*0.05)%period;
 		Vec v = position();
 		visual.relocate(v.x, v.y);
 	}
 	
+	/**
+	 * Get the current position of the attractor.
+	 * @return A new Vec with the position.
+	 */
 	public Vec position() {
 		return curve.curve(t).mult(scale.get()).add(offset);
 	}
 	
 	
+	/**
+	 * Simple function getting a time-value and
+	 * returning the position of the curve at the
+	 * given absolute time.
+	 * 
+	 * @author Michael Hochmuth
+	 *
+	 */
 	@FunctionalInterface
 	public interface AttractorCurve {
 		public Vec curve(double t);
 	}
 	
+	/**
+	 * Get a visual representation of the Attractor.
+	 * (a dot at it's current position, updating realtime).
+	 * @return A Dot.
+	 */
 	public Group getVisual() {
 		return visual;
 	}

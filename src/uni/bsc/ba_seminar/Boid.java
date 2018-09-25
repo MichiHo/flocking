@@ -12,6 +12,13 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Polygon;
 
+/**
+ * A single Boid for the simulation, with position and velocity.
+ * The contained flocking simulation uses the parameters from the 
+ * global {@link DataModel} in {@link MainWindow#data}.
+ * @author Michael Hochmuth
+ *
+ */
 public class Boid {
 	
 	
@@ -24,12 +31,17 @@ public class Boid {
 	Polygon polygon;
 	public boolean useAttractor;
 	
-	Vec pos;
-	Vec vel = new Vec(), acceleration = new Vec();
+	Vec pos, nextPos;
+	Vec vel,nextVel , acceleration = new Vec();
 	
 	public Boid(double x, double y) {
 		visual = new Group();
 		pos = new Vec(x,y);
+		vel = new Vec();
+		
+		nextPos = pos;
+		nextVel = vel;
+		
 		polygon = new Polygon(0.0,4.0,10.0,0.0,0.0,-4.0);
 		polygon.setStroke(null);
 		polygon.setFill(Color.GREEN);
@@ -43,7 +55,13 @@ public class Boid {
 	
 	public Vec getVel() {return vel;}
 	
-	
+	/**
+	 * Calculate updated position based on physics and flocking from the
+	 * given boids. This doesn't apply the updated position to the boid yet,
+	 * for that (and the visual update) call {@link Boid#position()}.
+	 * @param boids
+	 * @param timeFactor
+	 */
 	public void update(Collection<Boid> boids, double timeFactor) {
 		
 		// Seperation
@@ -141,22 +159,21 @@ public class Boid {
 		}
 		
 		acceleration = acceleration.limit(MainWindow.data.getMaxAccel()).mult(MainWindow.data.getVelScale()*timeFactor);
-		vel = vel.add(acceleration).limit(MainWindow.data.getMaxVel());
-		pos = pos.add(vel.mult(MainWindow.data.getVelScale()*timeFactor));
+		nextVel = vel.add(acceleration).limit(MainWindow.data.getMaxVel());
+		nextPos = pos.add(nextVel.mult(MainWindow.data.getVelScale()*timeFactor));
 		if(MainWindow.data.isBorderFlip()) {
-			if(pos.x < 0) pos.x += finalArea.getWidth();
-			if(pos.y < 0) pos.y += finalArea.getHeight();
-			pos = new Vec(pos.x%finalArea.getWidth(), pos.y % finalArea.getHeight());
+			if(nextPos.x < 0) nextPos.x += finalArea.getWidth();
+			if(nextPos.y < 0) nextPos.y += finalArea.getHeight();
+			nextPos = new Vec(nextPos.x%finalArea.getWidth(), nextPos.y % finalArea.getHeight());
 		}
 		
 		acceleration = new Vec();
 	}
 	
-	public void recolor(Paint fill) {
-		polygon.setFill(fill);
-	}
-	
 	public void position() {
+		pos = nextPos;
+		vel = nextVel;
+		
 		if(!finalArea.contains(new Point2D(pos.x,pos.y))) {
 			visual.setOpacity(0.5);
 		} else {
@@ -166,4 +183,8 @@ public class Boid {
 			
 		}
 	}
+	public void setFill(Paint fill) {
+		polygon.setFill(fill);
+	}
+	
 }

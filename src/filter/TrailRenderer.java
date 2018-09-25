@@ -15,7 +15,9 @@ import uni.bsc.ba_seminar.Vec;
  * Paints a line as Trail of some 2D-Moving Object.
  * After push() has been invoked, the TrailRenderer
  * shows as Line from the current position to the past
- * <em>length</em>.
+ * <em>length</em>. Is realized with a Ring-buffer, which
+ * leads to strange artifacts when changing the length 
+ * (that disappear shortly after however).
  * 
  * @author Michael Hochmuth
  *
@@ -31,6 +33,12 @@ public class TrailRenderer extends Group{
 	
 	private Vector<Vec> trail;
 	
+	/**
+	 * Create a trail-renderer that keeps the given count
+	 * of samples and paints them decreasing in opacity.
+	 * 
+	 * @param length Number of samples to keep
+	 */
 	public TrailRenderer(int length) {
 		this.length.set(length);
 		trail = new Vector<>(length);

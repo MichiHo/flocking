@@ -10,8 +10,18 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
-
+/**
+ * DataModel describing one configuration.
+ * Allows storing and loading through simple JSON-(De)Serialization.
+ * 
+ * @author Michael Hochmuth
+ *
+ */
 public class DataModel {
+	/**
+	 * Describe the GH-Filter's mode of operation.
+	 * Mainly for different choice of g and h.
+	 */
 	public static enum GHFilterMode {
 		Normal(true),
 		Benedict_Bordner(false);
@@ -74,7 +84,9 @@ public class DataModel {
 	private DoubleProperty gh_g = new SimpleDoubleProperty(0.1);
 	private DoubleProperty gh_h = new SimpleDoubleProperty(0.0);
 	
+	// Kalman-Filter
 	private BooleanProperty kalman_active = new SimpleBooleanProperty(false);
+	private DoubleProperty kalman_noise_scale = new SimpleDoubleProperty(1.0);
 	
 	// Visuals
 	private IntegerProperty globalTrailLength = new SimpleIntegerProperty(300);
@@ -477,6 +489,21 @@ public class DataModel {
 	public final void setKalman_active(final boolean kalman_active) {
 		this.kalman_activeProperty().set(kalman_active);
 	}
+
+	public final DoubleProperty kalman_noise_scaleProperty() {
+		return this.kalman_noise_scale;
+	}
+	
+
+	public final double getKalman_noise_scale() {
+		return this.kalman_noise_scaleProperty().get();
+	}
+	
+
+	public final void setKalman_noise_scale(final double kalman_noise_scale) {
+		this.kalman_noise_scaleProperty().set(kalman_noise_scale);
+	}
+	
 	
 	
 	

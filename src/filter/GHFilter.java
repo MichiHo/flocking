@@ -16,17 +16,30 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import uni.bsc.ba_seminar.DataModel.GHFilterMode;
+import uni.bsc.ba_seminar.DataModel;
 import uni.bsc.ba_seminar.MainWindow;
 
+/**
+ * G-H-Filter implenentation using n-dimensional state and
+ * velocity vectors. The parameters of this filter are taken from
+ * the global {@link DataModel} from the {@link MainWindow}.
+ * <br>
+ * Also supplies a visualization of the filter performance with
+ * a {@link TrailRenderer}
+ * 
+ * @author Michael Hochmuth
+ *
+ */
 public class GHFilter {
 	public StringProperty status = new SimpleStringProperty("init");
 	private int dimension;
 	
+	// State Vectors
 	private Vector<Double> x,v;
 	
+	// Visualization
 	private Group visual;
 	private TrailRenderer trail = new TrailRenderer(300);
-	private Circle dot = new Circle(0.0,0.0,8.0, Color.RED);;
 	
 	public GHFilter(int dimension) {
 		if(dimension<0) throw new IllegalArgumentException();
@@ -47,7 +60,6 @@ public class GHFilter {
 		trail.setStrokeWidth(3.0);
 		trail.visibleProperty().bind(MainWindow.data.showFilterTrailProperty());
 		visual.getChildren().add(trail);
-		//visual.getChildren().add(dot);
 	}
 	
 	public void step(List<Double> measures, double timeFactor) {
@@ -71,10 +83,7 @@ public class GHFilter {
 			newV.add(v_k + h*residual/timeFactor);
 		}
 		// Update 2D Visual
-		dot.setCenterX(newX.get(0));
-		dot.setCenterY(newX.get(1));
 		trail.push(newX.get(0), newX.get(1));
-				
 				
 		x = newX;
 		v = newV;

@@ -72,22 +72,33 @@ import javafx.stage.Stage;
 import uni.bsc.ba_seminar.DataModel.AttractorType;
 import uni.bsc.ba_seminar.DataModel.GHFilterMode;
 
+/**
+ * Main window containing the canvas for showing
+ * the flocking-simulation and visualizing the filter
+ * and a menu for adjusting and saving the configuration.
+ * 
+ * @author Michael Hochmuth
+ *
+ */
 public class MainWindow extends Application {
+	/**
+	 * Global data model
+	 */
 	public static DataModel data = new DataModel();
 	
+	// Configuration not in the datamodel
 	private static ObservableList<String> configurations = FXCollections.observableArrayList();
 	private BooleanProperty keepFirstBoid = new SimpleBooleanProperty(true);
+	private BooleanProperty paused = new SimpleBooleanProperty(true);
 	
+	// UI
 	private double height = 700.0, width = 1000.0, menuWidth = 330.0;
 	private Label fpsLabel, boidsLabel;
-	private BooleanProperty paused = new SimpleBooleanProperty(true);
 	private Pane canvas;
 	private ComboBox<String> confChooser;
-	private int cores;
-	private double timeFactor;
-	private long nanosPerFrame = 16666667L, nanoAccum = 0L;
-	private Random randomX = new Random(), randomY = new Random();
+	private GridPane menuPane;
 	
+	// Visualization
 	private Circle measureDot = new Circle(0.0, 0.0, 3.0, Color.BLACK);
 	private TrailRenderer measureTrail = new TrailRenderer(300);
 	private Circle measureNoiseCircle;
@@ -95,14 +106,21 @@ public class MainWindow extends Application {
 	private Circle kalmanDot = new Circle(0.0, 0.0, 3.0, Color.CYAN);
 	private TrailRenderer kalmanTrail = new TrailRenderer(300);
 	private Line kalmanPredict = new Line();
-	private GridPane menuPane;
 	
-	// For simulating lower-frequency measuring
+	// Simulation
+	private List<Boid> boids;
+	private int cores;
+	private double timeFactor;
+	private long nanosPerFrame = 16666667L, nanoAccum = 0L;
+	private Random randomX = new Random(), randomY = new Random();
 	private int measureFrameCount = 0;
 	private double measureTimeFactorAccum = 0.0;
 	
+	
 	private GHFilter ghfilter;
 	private KalmanFilter kalmanfilter;
+	
+	// Kalman-Filter matrices
 	RealMatrix stateTransition = new Array2DRowRealMatrix(new double [][]{
 		{1.0,0.0,1.0,0.0},		// x = x + t*dx
 		{0.0,1.0,0.0,1.0},		// y = y + t*dy
@@ -140,7 +158,6 @@ public class MainWindow extends Application {
 		{0.0,0.0}});
 	
 	
-	private List<Boid> boids;
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		ghfilter = new GHFilter(2);
@@ -201,10 +218,8 @@ public class MainWindow extends Application {
 //					{0.0, 0.0, 1.0, 0.0},		// dx = dx
 //					{0.0, 0.0, 0.0, 1.0}} ));	// dy = dy
 //		
-		cores = Runtime.getRuntime().availableProcessors();
-		primaryStage.setResizable(true);
-		primaryStage.setHeight(height);
-		primaryStage.setWidth(width);
+//		cores = Runtime.getRuntime().availableProcessors();
+		
 		
 		for(AttractorType t : AttractorType.values()) {
 			t.attractor.offset = new Vec(width*0.6,height/2.0);
@@ -219,14 +234,17 @@ public class MainWindow extends Application {
 				boids.get(0).useAttractor = true;
 		});
 		
+		primaryStage.setResizable(true);
+		primaryStage.setHeight(height);
+		primaryStage.setWidth(width);
 		
 		BorderPane root = new BorderPane();
 		
 		menuPane = new GridPane();
 		menuPane.setPickOnBounds(true);
-		
 		menuPane.setHgap(10.0);
 		int menuRow = 0;
+		
 		
 		Button btnSaveConf = new Button("Save");
 		btnSaveConf.setOnAction(e->{
@@ -299,6 +317,10 @@ public class MainWindow extends Application {
 		boidsLabel = new Label("Boids: 0");
 		fpsLabel = new Label();
 		menuPane.add(new HBox(5.0,pauseButton,resetButton,btnKeepFirstBoid,boidsLabel,fpsLabel),0,menuRow++);
+		
+		
+		///////////////////////////////////////////////////////////////////////
+		// FLOCKING CONFIGURATION
 		
 		GridPane flockingMenu = new GridPane();
 		TitledPane flockingMenuPane = new TitledPane("Flocking Setup", flockingMenu);
@@ -421,6 +443,10 @@ public class MainWindow extends Application {
 		btnShowAtt.selectedProperty().bindBidirectional(data.showAttractorProperty());
 		flockingMenu.add(btnShowAtt, 0, row++);
 		
+		
+		///////////////////////////////////////////////////////////////////////
+		// FILTER CONFIGURATION
+
 		GridPane filterMenu = new GridPane();
 		filterMenu.setBackground(new Background(new BackgroundFill(
 				Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
@@ -530,6 +556,13 @@ public class MainWindow extends Application {
 		btnKalmanActive.selectedProperty().bindBidirectional(data.kalman_activeProperty());
 		filterMenu.add(btnKalmanActive, 0, row++);
 		
+		Slider slKalmanNoise = new Slider(0.1, 10.0, 0.1);
+		slKalmanNoise.setPrefWidth(menuWidth);
+		slKalmanNoise.valueProperty().bindBidirectional(data.kalman_noise_scaleProperty());
+		slKalmanNoise.setShowTickMarks(true);
+		slKalmanNoise.setShowTickLabels(true);
+		filterMenu.add(slKalmanNoise, 0, row++);
+		
 		Button btnKalmanSet = new Button("Set to Boid");
 		btnKalmanSet.setOnAction(e->{
 			if(boids.size()<1) return;
@@ -560,6 +593,10 @@ public class MainWindow extends Application {
 		menuScroll.setHbarPolicy(ScrollBarPolicy.NEVER);
 		menuScroll.setPrefWidth(menuWidth + 50.0);
 		root.setLeft(menuScroll);
+		
+		
+		///////////////////////////////////////////////////////////////////////
+		// SIMULATION WINDOW
 		
 		StackPane canvasStack = new StackPane();
 		
@@ -615,6 +652,12 @@ public class MainWindow extends Application {
 		startAnimation();
 	}
 	
+	/**
+	 * Creates a formatted caption for the Menu
+	 * 
+	 * @param text
+	 * @return
+	 */
 	private Node caption(String text) {
 		Label l = new Label(text);
 		l.setStyle("-fx-text-alignment: center; font-weight: bolder");
@@ -623,6 +666,14 @@ public class MainWindow extends Application {
 		return new BorderPane(l, s, null, null, null);
 	}
 	
+	
+	/**
+	 * Create and add a new boid at the given position. 
+	 * The Boid is also added to the canvas.
+	 * 
+	 * @param x Position
+	 * @param y Position
+	 */
 	public void addBoid(double x, double y) {
 		Boid b = new Boid(x,y);
 		boids.add(b);
@@ -632,8 +683,17 @@ public class MainWindow extends Application {
 		if(data.attractorForAllProperty().get() || boids.size()==1) {
 			b.useAttractor = true;
 		}
+		if(boids.size()==1) {
+			b.getVisual().setScaleX(3.0);
+			b.getVisual().setScaleY(3.0);
+			b.setFill(Color.BLUE);
+		}
 	}
 	
+	/**
+	 * Invoke once to start a new timer to call the 
+	 * {@link MainWindow#physicsUpdate(long)} function.
+	 */
 	public void startAnimation() {
 
 		AnimationTimer timer = new AnimationTimer() {
@@ -669,8 +729,11 @@ public class MainWindow extends Application {
 //	BoidWorker workers[];
 //	Object nextCycleMutex = new Object();
 	/**
-	 * Next step.
-	 * @param deltaTime Time since last Step in NANOSECONDS!
+	 * Next step. The function internally waits until at least
+	 * <code>1/fps</code> time has passed to ensure near-constant
+	 * physics-framerate.
+	 * 
+	 * @param deltaTime Time since last Step in Nanoseconds.
 	 */
 	public void physicsUpdate(long deltaTime) {
 		
@@ -679,40 +742,48 @@ public class MainWindow extends Application {
 			nanoAccum -= nanosPerFrame;
 			timeFactor = 1.0;
 		
-			Boid.borderArea = new Rectangle2D(data.borderProperty().get(),data.borderProperty().get(),
-					canvas.getWidth()-2.0*data.borderProperty().get(), canvas.getHeight()-2.0*data.borderProperty().get());
-			Boid.finalArea = new Rectangle2D(0.0, 0.0, canvas.getWidth(), canvas.getHeight());
-			
-			data.getAttractorType().attractor.timeStep(timeFactor);
-		
-		
-			for(Boid b : boids) {
-				b.update(boids, timeFactor);
-			}
-			for(Boid b : boids) {
-				b.position();
-				
-				
-			}
 			if(boids.size()>0) {
+				Boid.borderArea = new Rectangle2D(data.borderProperty().get(),data.borderProperty().get(),
+						canvas.getWidth()-2.0*data.borderProperty().get(), canvas.getHeight()-2.0*data.borderProperty().get());
+				Boid.finalArea = new Rectangle2D(0.0, 0.0, canvas.getWidth(), canvas.getHeight());
+				
+				data.getAttractorType().attractor.timeStep(timeFactor);
+			
+				// First update all based on former position
+				for(Boid b : boids) {
+					b.update(boids, timeFactor);
+				}
+				// Then apply updates
+				for(Boid b : boids) {
+					b.position();
+				}
+				
 				positionTrail.push(boids.get(0).getPos());
 				if(measureFrameCount<data.framesPerMeasureProperty().get()) {
+					// Simulate reduced measurement-framerate
 					measureFrameCount++;
 					measureTimeFactorAccum+= deltaTime;
 				} else {
+					measureFrameCount = 0;
+					measureTimeFactorAccum = 0.0;
 					
-					boids.get(0).getVisual().setScaleX(3.0);
-					boids.get(0).getVisual().setScaleY(3.0);
-					boids.get(0).recolor(Color.BLUE);
-					measureNoiseCircle.setCenterX(boids.get(0).getPos().x);
-					measureNoiseCircle.setCenterY(boids.get(0).getPos().y);
+					
+					// Make noisy measurements
 					Vector<Double> measure = new Vector<Double>();
 					measure.add(boids.get(0).pos.x + data.noiseProperty().get()*(randomX.nextGaussian()));
 					measure.add(boids.get(0).pos.y + data.noiseProperty().get()*(randomY.nextGaussian()));
+					
+					// Noise visualization
+					measureNoiseCircle.setCenterX(boids.get(0).getPos().x);
+					measureNoiseCircle.setCenterY(boids.get(0).getPos().y);
 					measureDot.setCenterX(measure.get(0));
 					measureDot.setCenterY(measure.get(1));
 					measureTrail.push(measure.get(0), measure.get(1));
-					if(data.isGh_active()) ghfilter.step(measure, measureTimeFactorAccum); // oder deltaTime?
+					
+					// Filtering
+					if(data.isGh_active()) {
+						ghfilter.step(measure, measureTimeFactorAccum);
+					}
 					
 					if(data.isKalman_active()) {
 //						kalmanfilter.step(DoubleFactory1D.dense.make(new double[] 
@@ -725,8 +796,8 @@ public class MainWindow extends Application {
 //								{data.noiseProperty().get()*data.noiseProperty().get(), 0.0},
 //								{0.0, data.noiseProperty().get()*data.noiseProperty().get()}});
 						observationNoise = new Array2DRowRealMatrix(new double [][]{
-							{data.noiseProperty().get(), 0.0},
-							{0.0, data.noiseProperty().get()}});
+							{data.noiseProperty().get()*data.getKalman_noise_scale(), 0.0},
+							{0.0, data.noiseProperty().get()*data.getKalman_noise_scale()}});
 						
 						kalmanfilter.correct(new double[] {measure.get(0), measure.get(1)});
 						double [] result = kalmanfilter.getStateEstimation();
@@ -744,8 +815,6 @@ public class MainWindow extends Application {
 						kalmanPredict.setEndY(predict[1]);
 					}
 					
-					measureFrameCount = 0;
-					measureTimeFactorAccum = 0.0;
 				}
 			}
 		}
@@ -814,7 +883,7 @@ public class MainWindow extends Application {
 //	}
 	
 	public static void main(String[] args) throws IOException {
-		
+		// Read existing profiles
 		File profilesFolder = new File("profiles");
 		File[] names = profilesFolder.listFiles((dir,name)->{
 			return name.endsWith(".json");
@@ -823,8 +892,6 @@ public class MainWindow extends Application {
 			configurations.add(f.getName().substring(0, f.getName().length()-5));
 		}
 		
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.writeValue(new File("profiles/first.json"), data);
 		Application.launch(args);
 	}
 
