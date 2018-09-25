@@ -7,12 +7,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.Vector;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import cern.colt.matrix.DoubleFactory2D;
-import filter.GHFilter;
-import filter.TrailRenderer;
 import org.apache.commons.math3.filter.KalmanFilter;
 import org.apache.commons.math3.filter.MeasurementModel;
 import org.apache.commons.math3.filter.ProcessModel;
@@ -20,19 +14,17 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import filter.GHFilter;
+import filter.TrailRenderer;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.css.Style;
 import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -55,15 +47,12 @@ import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.Paint;
 import javafx.scene.paint.RadialGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Circle;
@@ -109,7 +98,6 @@ public class MainWindow extends Application {
 	
 	// Simulation
 	private List<Boid> boids;
-	private int cores;
 	private double timeFactor;
 	private long nanosPerFrame = 16666667L, nanoAccum = 0L;
 	private Random randomX = new Random(), randomY = new Random();
@@ -125,37 +113,23 @@ public class MainWindow extends Application {
 		{1.0,0.0,1.0,0.0},		// x = x + t*dx
 		{0.0,1.0,0.0,1.0},		// y = y + t*dy
 		{0.0,0.0,1.0,0.0},		// dx = dx
-		{0.0,0.0,0.0,1.0}});
+		{0.0,0.0,0.0,1.0}});	// dy = dy
 	
-	RealMatrix stateTransitionAcc = new Array2DRowRealMatrix(new double [][]{
-		{1.0,0.0,1.0,0.0,0.5,0.0},		// x = x + t*dx
-		{0.0,1.0,0.0,1.0,0.0,0.5},		// y = y + t*dy
-		{0.0,0.0,1.0,0.0,1.0,0.0},		
-		{0.0,0.0,0.0,1.0,0.0,1.0},		
-		{0.0,0.0,0.0,0.0,1.0,0.0},		
-		{0.0,0.0,0.0,0.0,0.0,1.0}});
 	
 	RealMatrix processNoise = new Array2DRowRealMatrix(new double [][]{
-		{0.1,0.0,0.0,0.0},		// x = x + t*dx
-		{0.0,0.1,0.0,0.0},		// y = y + t*dy
-		{0.0,0.0,0.1,0.0},		
+		{0.1,0.0,0.0,0.0},		// Assumes small variance and no other covariance
+		{0.0,0.1,0.0,0.0},
+		{0.0,0.0,0.1,0.0},
 		{0.0,0.0,0.0,0.1}});
 	
-	RealMatrix processNoise6 = new Array2DRowRealMatrix(new double [][]{
-		{0.1,0.0,0.0,0.0,0.0,0.0},		// x = x + t*dx
-		{0.0,0.1,0.0,0.0,0.0,0.0},		// y = y + t*dy
-		{0.0,0.0,0.1,0.0,0.0,0.0},		
-		{0.0,0.0,0.0,0.1,0.0,0.0},		
-		{0.0,0.0,0.0,0.0,0.1,0.0},		
-		{0.0,0.0,0.0,0.0,0.0,0.1}});
 	
 	RealMatrix observationModel = new Array2DRowRealMatrix(new double [][]{
-		{1.0,0.0,0.0,0.0},
+		{1.0,0.0,0.0,0.0},		// Use observation only for position not vel
 		{0.0,1.0,0.0,0.0}});
 	
 	RealMatrix observationNoise = new Array2DRowRealMatrix(new double [][]{
-		{0.0,0.0},
-		{0.0,0.0}});
+		{0.0,0.0},				// This matrix is updated per step
+		{0.0,0.0}});			// based on data.getNoise()
 	
 	
 	@Override
@@ -199,27 +173,6 @@ public class MainWindow extends Application {
 				return observationModel;
 			}
 		});
-//		kalmanfilter = new KalmanFilter(4);
-//		kalmanfilter.setObservationModel(DoubleFactory2D.dense.make(
-//				new double [][]{
-//					{1.0,0.0,0.0,0.0},	// apply x
-//					{0.0,1.0,0.0,0.0}}	// apply y
-//					));
-//		kalmanfilter.setStateTransitionModel(DoubleFactory2D.dense.make(
-//				new double [][]{
-//					{1.0,0.0,1.0,0.0},		// x = x + t*dx
-//					{0.0,1.0,0.0,1.0},		// y = y + t*dy
-//					{0.0,0.0,1.0,0.0},		// dx = dx
-//					{0.0,0.0,0.0,1.0}} ));	// dy = dy
-//		kalmanfilter.setProcessNoise(DoubleFactory2D.dense.make(
-//				new double [][]{
-//					{1.0, 0.2, 0.0, 0.0},		// x = x + t*dx
-//					{0.2, 1.0, 0.0, 0.0},		// y = y + t*dy
-//					{0.0, 0.0, 1.0, 0.0},		// dx = dx
-//					{0.0, 0.0, 0.0, 1.0}} ));	// dy = dy
-//		
-//		cores = Runtime.getRuntime().availableProcessors();
-		
 		
 		for(AttractorType t : AttractorType.values()) {
 			t.attractor.offset = new Vec(width*0.6,height/2.0);
@@ -575,16 +528,6 @@ public class MainWindow extends Application {
 			kalmanfilter.correct(new double[] 
 					{b.getPos().x, b.getPos().y});
 			observationNoise = m;
-			
-//			kalmanfilter.setState(DoubleFactory1D.dense.make(new double[] 
-//					{b.getPos().x, b.getPos().y,
-//					 b.getVel().x, b.getVel().y}), 
-//					DoubleFactory2D.dense.make(
-//							new double [][]{
-//								{0.0,0.0,0.0,0.0},	// apply x
-//								{0.0,0.0,0.0,0.0},	// apply y
-//								{0.0,0.0,0.0,0.0},
-//								{0.0,0.0,0.0,0.0}} ));
 		});
 		filterMenu.add(btnKalmanSet, 0, row++);
 		
@@ -634,7 +577,6 @@ public class MainWindow extends Application {
 		kalmanPredict.getStrokeDashArray().addAll(3.0,5.0);
 		kalmanPredict.setStrokeWidth(3.0);
 		kalmanDot.visibleProperty().bind(data.kalman_activeProperty());
-//		filterVisuals.getChildren().add(kalmanDot);
 		filterVisuals.getChildren().add(kalmanTrail);
 		filterVisuals.getChildren().add(kalmanPredict);
 		data.attractorTypeProperty().addListener((c,o,n)->{
@@ -723,11 +665,6 @@ public class MainWindow extends Application {
 		timer.start();
 	}
 	
-	
-//	CyclicBarrier barrier;
-//	Thread threads[];
-//	BoidWorker workers[];
-//	Object nextCycleMutex = new Object();
 	/**
 	 * Next step. The function internally waits until at least
 	 * <code>1/fps</code> time has passed to ensure near-constant
@@ -786,15 +723,6 @@ public class MainWindow extends Application {
 					}
 					
 					if(data.isKalman_active()) {
-//						kalmanfilter.step(DoubleFactory1D.dense.make(new double[] 
-//								{measure.get(0), measure.get(1)}),
-//								DoubleFactory2D.dense.make(new double [][]{
-//									{data.noiseProperty().get()*data.noiseProperty().get(), 0.0},
-//									{0.0, data.noiseProperty().get()*data.noiseProperty().get()}} ),null);
-						
-//						observationNoise = new Array2DRowRealMatrix(new double [][]{
-//								{data.noiseProperty().get()*data.noiseProperty().get(), 0.0},
-//								{0.0, data.noiseProperty().get()*data.noiseProperty().get()}});
 						observationNoise = new Array2DRowRealMatrix(new double [][]{
 							{data.noiseProperty().get()*data.getKalman_noise_scale(), 0.0},
 							{0.0, data.noiseProperty().get()*data.getKalman_noise_scale()}});
@@ -818,69 +746,8 @@ public class MainWindow extends Application {
 				}
 			}
 		}
-//		if(boids.size()>100) {
-//			if(barrier==null) {
-//				// This initializes the worker threads.
-//				
-//				threads = new Thread[cores];
-//				workers = new BoidWorker[cores];
-//				barrier = new CyclicBarrier(cores+1);
-//				for(int core = 0; core < cores; ++core) {
-//					workers[core] = new BoidWorker(core,cores);
-//					threads[core] = new Thread(workers[core]);
-//					threads[core].start();
-//				}
-//			}
-//			// Make threads work out new Boid position
-//			synchronized (nextCycleMutex) {
-//				nextCycleMutex.notifyAll();
-//				
-//			}
-//			
-//			try {
-//				barrier.await(); // Wait for them to finish
-//			} catch (InterruptedException | BrokenBarrierException e) {
-//				e.printStackTrace();
-//			}
-//			barrier.reset();	// Reset for next Cycle
-//			
-//		} else {
-//			// No thread option
-//			for(Boid b : boids) {
-//				b.update(boids, timeFactor);
-//			}
-//		}
 	}
 	
-//	public class BoidWorker implements Runnable {
-//		int index, cores;
-//		public BoidWorker(int index, int cores) {
-//			this.index = index;
-//			this.cores = cores;
-//		}
-//		@Override
-//		public void run() {
-//			while(true) {
-//			try {
-//				synchronized (nextCycleMutex) {
-//					nextCycleMutex.wait();		// Wait for next cycle
-//					
-//				}
-//			} catch (InterruptedException e1) {
-//				e1.printStackTrace();
-//			}				
-//			for(int b = index; b < boids.size(); b+=cores) {
-//				boids.get(b).update(boids, timeFactor);
-//			}
-//			try {
-//				barrier.await(); 	// Reach the barrier for painting
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			} catch (BrokenBarrierException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//	}
 	
 	public static void main(String[] args) throws IOException {
 		// Read existing profiles

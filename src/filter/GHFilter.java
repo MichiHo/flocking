@@ -1,22 +1,15 @@
 package filter;
 
 import java.util.List;
-import java.util.Observable;
 import java.util.Vector;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.Line;
-import uni.bsc.ba_seminar.DataModel.GHFilterMode;
 import uni.bsc.ba_seminar.DataModel;
+import uni.bsc.ba_seminar.DataModel.GHFilterMode;
 import uni.bsc.ba_seminar.MainWindow;
 
 /**
