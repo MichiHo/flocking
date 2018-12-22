@@ -1,4 +1,6 @@
-package uni.bsc.ba_seminar;
+package application;
+
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 import filter.Attractor;
 import javafx.beans.property.BooleanProperty;
@@ -31,18 +33,18 @@ public class DataModel {
 	
 	public static enum AttractorType {
 		Eight(new Attractor(t ->  {
-			return new Vec(2.0*Math.cos(t),Math.sin(t*2.0));
+			return new Vector2D(2.0*Math.cos(t),Math.sin(t*2.0));
 		})),
 		Circle(new Attractor(t ->  {
-			return new Vec(Math.cos(t),Math.sin(t));
+			return new Vector2D(Math.cos(t),Math.sin(t));
 		})),
 		Line(new Attractor(t ->  {
 			if(t<Math.PI)
-				return new Vec(
+				return new Vector2D(
 						-1.0 + 2.0*t/Math.PI, 
 						-1.0 + 2.0*t/Math.PI);
 			else
-				return new Vec(
+				return new Vector2D(
 						1.0 + 2.0*(Math.PI-t)/Math.PI, 
 						1.0 + 2.0*(Math.PI-t)/Math.PI);
 			

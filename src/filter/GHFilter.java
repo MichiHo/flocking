@@ -3,14 +3,14 @@ package filter;
 import java.util.List;
 import java.util.Vector;
 
+import application.DataModel;
+import application.MainWindow;
+import application.DataModel.GHFilterMode;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
-import uni.bsc.ba_seminar.DataModel;
-import uni.bsc.ba_seminar.DataModel.GHFilterMode;
-import uni.bsc.ba_seminar.MainWindow;
 
 /**
  * G-H-Filter implenentation using n-dimensional state and

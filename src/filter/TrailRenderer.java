@@ -2,12 +2,13 @@ package filter;
 
 import java.util.Vector;
 
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
-import uni.bsc.ba_seminar.Vec;
 
 /**
  * Paints a line as Trail of some 2D-Moving Object.
@@ -29,7 +30,7 @@ public class TrailRenderer extends Group{
 	private double width = 1.0;
 	private Color stroke = Color.BLACK;
 	
-	private Vector<Vec> trail;
+	private Vector<Vector2D> trail;
 	
 	/**
 	 * Create a trail-renderer that keeps the given count
@@ -41,14 +42,14 @@ public class TrailRenderer extends Group{
 		this.length.set(length);
 		trail = new Vector<>(length);
 		for(int i = 0; i < length; ++i) {
-			trail.add(new Vec(0.0,0.0));
+			trail.add(Vector2D.ZERO);
 		}
 		this.length.addListener((ob,o,n)-> {
 			for(int i = trail.size(); i < n.intValue(); ++i) {
-				trail.add(new Vec());
+				trail.add(Vector2D.ZERO);
 			}
 			for(int i = o.intValue()-1; i >=n.intValue(); --i) {
-				trail.set(i, new Vec());
+				trail.set(i, Vector2D.ZERO);
 			}
 		});
 
@@ -80,12 +81,12 @@ public class TrailRenderer extends Group{
 		getChildren().clear();
 		int length = this.length.get();
 		for(int i = 0; i < length-1; ++i) {
-			if(trail.get((i+index)%length).x<0 || trail.get((i+index+1)%length).x < 0) continue;
+			if(trail.get((i+index)%length).getX()<0 || trail.get((i+index+1)%length).getX() < 0) continue;
 			Line line = new Line(
-					trail.get((i+index)%length).x,
-					trail.get((i+index)%length).y,
-					trail.get((i+index+1)%length).x,
-					trail.get((i+index+1)%length).y);
+					trail.get((i+index)%length).getX(),
+					trail.get((i+index)%length).getY(),
+					trail.get((i+index+1)%length).getX(),
+					trail.get((i+index+1)%length).getY());
 			line.setPickOnBounds(false);
 			line.setStroke(stroke.deriveColor(0.0, 1.0, 1.0, ((i+1.0)/length)+0.1));
 			line.setStrokeWidth(width);
@@ -99,8 +100,10 @@ public class TrailRenderer extends Group{
 	 * (before <em>length</em> push operations) is discarded instead.
 	 * @param pos Vec with the position
 	 */
-	public void push(Vec pos) {
-		push(pos.x,pos.y);
+	public void push(Vector2D pos) {
+		trail.set(index, pos);
+		index = (index+1)%length.get();
+		redraw();
 	}
 	
 	/**
@@ -110,9 +113,7 @@ public class TrailRenderer extends Group{
 	 * @param y Y-Position
 	 */
 	public void push(double x, double y) {
-		trail.set(index, new Vec(x,y));
-		index = (index+1)%length.get();
-		redraw();
+		push(new Vector2D(x,y));
 	}
 
 	public final IntegerProperty lengthProperty() {

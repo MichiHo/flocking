@@ -1,4 +1,4 @@
-package uni.bsc.ba_seminar;
+package application;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,12 +10,15 @@ import java.util.Vector;
 import org.apache.commons.math3.filter.KalmanFilter;
 import org.apache.commons.math3.filter.MeasurementModel;
 import org.apache.commons.math3.filter.ProcessModel;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import application.DataModel.AttractorType;
+import application.DataModel.GHFilterMode;
 import filter.GHFilter;
 import filter.TrailRenderer;
 import javafx.animation.AnimationTimer;
@@ -25,6 +28,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -58,8 +62,6 @@ import javafx.scene.paint.Stop;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.stage.Stage;
-import uni.bsc.ba_seminar.DataModel.AttractorType;
-import uni.bsc.ba_seminar.DataModel.GHFilterMode;
 
 /**
  * Main window containing the canvas for showing
@@ -82,6 +84,7 @@ public class MainWindow extends Application {
 	
 	// UI
 	private double height = 700.0, width = 1000.0, menuWidth = 330.0;
+	private BorderPane root;
 	private Label fpsLabel, boidsLabel;
 	private Pane canvas;
 	private ComboBox<String> confChooser;
@@ -103,8 +106,12 @@ public class MainWindow extends Application {
 	private Random randomX = new Random(), randomY = new Random();
 	private int measureFrameCount = 0;
 	private double measureTimeFactorAccum = 0.0;
+	/** The Area out of which the Boids steer back toward the center */
+	public static Rectangle2D borderArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
+	/** The Area out of which Boids aren't painted anymore */
+	public static Rectangle2D finalArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
 	
-	
+	// Filtering
 	private GHFilter ghfilter;
 	private KalmanFilter kalmanfilter;
 	
@@ -115,13 +122,11 @@ public class MainWindow extends Application {
 		{0.0,0.0,1.0,0.0},		// dx = dx
 		{0.0,0.0,0.0,1.0}});	// dy = dy
 	
-	
 	RealMatrix processNoise = new Array2DRowRealMatrix(new double [][]{
 		{0.1,0.0,0.0,0.0},		// Assumes small variance and no other covariance
 		{0.0,0.1,0.0,0.0},
 		{0.0,0.0,0.1,0.0},
 		{0.0,0.0,0.0,0.1}});
-	
 	
 	RealMatrix observationModel = new Array2DRowRealMatrix(new double [][]{
 		{1.0,0.0,0.0,0.0},		// Use observation only for position not vel
@@ -131,51 +136,55 @@ public class MainWindow extends Application {
 		{0.0,0.0},				// This matrix is updated per step
 		{0.0,0.0}});			// based on data.getNoise()
 	
+	// Kalman Models
+	ProcessModel kalmanProcessModel = new ProcessModel() {
+		@Override
+		public RealMatrix getStateTransitionMatrix() {
+			return stateTransition;
+		}
+		
+		@Override
+		public RealMatrix getProcessNoise() {
+			return processNoise;
+		}
+		
+		@Override
+		public RealVector getInitialStateEstimate() {
+			return null;
+		}
+		
+		@Override
+		public RealMatrix getInitialErrorCovariance() {
+			return null;
+		}
+		
+		@Override
+		public RealMatrix getControlMatrix() {
+			return null;
+		}
+	};
+	
+	MeasurementModel kalmanMeasurementModel = new MeasurementModel() {
+		@Override
+		public RealMatrix getMeasurementNoise() {
+			return observationNoise;
+		}
+		
+		@Override
+		public RealMatrix getMeasurementMatrix() {
+			return observationModel;
+		}
+	};
+	
+	
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		ghfilter = new GHFilter(2);
-		kalmanfilter = new KalmanFilter(new ProcessModel() {
-			
-			@Override
-			public RealMatrix getStateTransitionMatrix() {
-				return stateTransition;
-			}
-			
-			@Override
-			public RealMatrix getProcessNoise() {
-				return processNoise;
-			}
-			
-			@Override
-			public RealVector getInitialStateEstimate() {
-				return null;
-			}
-			
-			@Override
-			public RealMatrix getInitialErrorCovariance() {
-				return null;
-			}
-			
-			@Override
-			public RealMatrix getControlMatrix() {
-				return null;
-			}
-		}, new MeasurementModel() {
-			
-			@Override
-			public RealMatrix getMeasurementNoise() {
-				return observationNoise;
-			}
-			
-			@Override
-			public RealMatrix getMeasurementMatrix() {
-				return observationModel;
-			}
-		});
+		kalmanfilter = new KalmanFilter(kalmanProcessModel, kalmanMeasurementModel);
 		
 		for(AttractorType t : AttractorType.values()) {
-			t.attractor.offset = new Vec(width*0.6,height/2.0);
+			t.attractor.offset = new Vector2D(width*0.6,height/2.0);
 			t.attractor.scale.set(200.0);
 			t.attractor.speed.bind(data.attractorSpeedProperty());
 			t.attractor.getVisual().visibleProperty().bind(data.showAttractorProperty());
@@ -191,19 +200,35 @@ public class MainWindow extends Application {
 		primaryStage.setHeight(height);
 		primaryStage.setWidth(width);
 		
-		BorderPane root = new BorderPane();
+		root = new BorderPane();
 		
 		menuPane = new GridPane();
 		menuPane.setPickOnBounds(true);
 		menuPane.setHgap(10.0);
+		
+		menuSetup();
+		visualSetup();
+		
+		primaryStage.setScene(new Scene(root));
+		primaryStage.show();
+		
+		startAnimation();
+	}
+	
+	private void menuSetup() {
+
 		int menuRow = 0;
-		
-		
 		Button btnSaveConf = new Button("Save");
 		btnSaveConf.setOnAction(e->{
 			if(confChooser.getValue().equals("<configuration>") || confChooser.getValue().isEmpty()) return;
 			
 			ObjectMapper mapper = new ObjectMapper();
+			File folder = new File("profiles");
+			if(!folder.exists()) {
+				folder.mkdirs();
+			} else if(!folder.isDirectory()) {
+				return;
+			}
 			File f = new File("profiles/"+confChooser.getValue()+".json");
 			try {
 				f.createNewFile();
@@ -269,7 +294,9 @@ public class MainWindow extends Application {
 		
 		boidsLabel = new Label("Boids: 0");
 		fpsLabel = new Label();
-		menuPane.add(new HBox(5.0,pauseButton,resetButton,btnKeepFirstBoid,boidsLabel,fpsLabel),0,menuRow++);
+		menuPane.add(new HBox(5.0,pauseButton,resetButton,btnKeepFirstBoid,
+				new Separator(Orientation.VERTICAL),
+				boidsLabel,fpsLabel),0,menuRow++);
 		
 		
 		///////////////////////////////////////////////////////////////////////
@@ -485,8 +512,8 @@ public class MainWindow extends Application {
 		filterMenu.add(comboGHMode, 0, row++);
 		
 		Label ghstatus = new Label();
-		ghstatus.textProperty().bindBidirectional(ghfilter.status);
-		filterMenu.add(ghstatus, 0, row++);
+		//ghstatus.textProperty().bindBidirectional(ghfilter.status);
+		//filterMenu.add(ghstatus, 0, row++);
 		filterMenu.add(new Label("g:"), 0, row++);
 		Slider slFilterG = new Slider(0.0, 1.0, 0.1);
 		slFilterG.setPrefWidth(menuWidth);
@@ -523,10 +550,10 @@ public class MainWindow extends Application {
 			RealMatrix m = observationNoise;
 			
 			observationNoise = new Array2DRowRealMatrix(new double [][]{
-				{0.0,0.0},
-				{0.0,0.0}});
+				{0.001,0.0},
+				{0.0,0.001}});
 			kalmanfilter.correct(new double[] 
-					{b.getPos().x, b.getPos().y});
+					{b.getPos().getX(), b.getPos().getY()});
 			observationNoise = m;
 		});
 		filterMenu.add(btnKalmanSet, 0, row++);
@@ -536,8 +563,9 @@ public class MainWindow extends Application {
 		menuScroll.setHbarPolicy(ScrollBarPolicy.NEVER);
 		menuScroll.setPrefWidth(menuWidth + 50.0);
 		root.setLeft(menuScroll);
-		
-		
+	}
+	
+	private void visualSetup() {
 		///////////////////////////////////////////////////////////////////////
 		// SIMULATION WINDOW
 		
@@ -545,7 +573,7 @@ public class MainWindow extends Application {
 		
 		canvas = new Pane();
 		canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, e -> {
-			addBoid(e.getX(), e.getY());
+		addBoid(e.getX(), e.getY());
 		});
 		canvas.addEventHandler(MouseEvent.MOUSE_CLICKED, e->addBoid(e.getX(),e.getY()));
 		
@@ -580,25 +608,17 @@ public class MainWindow extends Application {
 		filterVisuals.getChildren().add(kalmanTrail);
 		filterVisuals.getChildren().add(kalmanPredict);
 		data.attractorTypeProperty().addListener((c,o,n)->{
-			filterVisuals.getChildren().remove(o.attractor.getVisual());
-			filterVisuals.getChildren().add(n.attractor.getVisual());
+		filterVisuals.getChildren().remove(o.attractor.getVisual());
+		filterVisuals.getChildren().add(n.attractor.getVisual());
 		});
 		filterVisuals.getChildren().add(data.getAttractorType().attractor.getVisual()); 
 		filterVisuals.setMouseTransparent(true);
 		canvasStack.getChildren().add(filterVisuals);
 		root.setCenter(canvasStack);
-		
-		primaryStage.setScene(new Scene(root));
-		primaryStage.show();
-		
-		startAnimation();
 	}
 	
 	/**
 	 * Creates a formatted caption for the Menu
-	 * 
-	 * @param text
-	 * @return
 	 */
 	private Node caption(String text) {
 		Label l = new Label(text);
@@ -620,7 +640,7 @@ public class MainWindow extends Application {
 		Boid b = new Boid(x,y);
 		boids.add(b);
 		canvas.getChildren().add(b.getVisual());
-		b.position();
+		b.update();
 		boidsLabel.setText("Boids: "+boids.size());
 		if(data.attractorForAllProperty().get() || boids.size()==1) {
 			b.useAttractor = true;
@@ -680,19 +700,19 @@ public class MainWindow extends Application {
 			timeFactor = 1.0;
 		
 			if(boids.size()>0) {
-				Boid.borderArea = new Rectangle2D(data.borderProperty().get(),data.borderProperty().get(),
+				borderArea = new Rectangle2D(data.borderProperty().get(),data.borderProperty().get(),
 						canvas.getWidth()-2.0*data.borderProperty().get(), canvas.getHeight()-2.0*data.borderProperty().get());
-				Boid.finalArea = new Rectangle2D(0.0, 0.0, canvas.getWidth(), canvas.getHeight());
+				finalArea = new Rectangle2D(0.0, 0.0, canvas.getWidth(), canvas.getHeight());
 				
 				data.getAttractorType().attractor.timeStep(timeFactor);
 			
 				// First update all based on former position
 				for(Boid b : boids) {
-					b.update(boids, timeFactor);
+					b.simulate(boids, timeFactor);
 				}
 				// Then apply updates
 				for(Boid b : boids) {
-					b.position();
+					b.update();
 				}
 				
 				positionTrail.push(boids.get(0).getPos());
@@ -701,18 +721,16 @@ public class MainWindow extends Application {
 					measureFrameCount++;
 					measureTimeFactorAccum+= deltaTime;
 				} else {
-					measureFrameCount = 0;
-					measureTimeFactorAccum = 0.0;
 					
 					
 					// Make noisy measurements
 					Vector<Double> measure = new Vector<Double>();
-					measure.add(boids.get(0).pos.x + data.noiseProperty().get()*(randomX.nextGaussian()));
-					measure.add(boids.get(0).pos.y + data.noiseProperty().get()*(randomY.nextGaussian()));
+					measure.add(boids.get(0).pos.getX() + data.noiseProperty().get()*(randomX.nextGaussian()));
+					measure.add(boids.get(0).pos.getY() + data.noiseProperty().get()*(randomY.nextGaussian()));
 					
 					// Noise visualization
-					measureNoiseCircle.setCenterX(boids.get(0).getPos().x);
-					measureNoiseCircle.setCenterY(boids.get(0).getPos().y);
+					measureNoiseCircle.setCenterX(boids.get(0).getPos().getX());
+					measureNoiseCircle.setCenterY(boids.get(0).getPos().getY());
 					measureDot.setCenterX(measure.get(0));
 					measureDot.setCenterY(measure.get(1));
 					measureTrail.push(measure.get(0), measure.get(1));
@@ -730,9 +748,9 @@ public class MainWindow extends Application {
 						kalmanfilter.correct(new double[] {measure.get(0), measure.get(1)});
 						double [] result = kalmanfilter.getStateEstimation();
 						
-						Vec kalmanPos = new Vec(result[0],result[1]);
-						kalmanDot.setCenterX(kalmanPos.x);
-						kalmanDot.setCenterY(kalmanPos.y);
+						Vector2D kalmanPos = new Vector2D(result[0],result[1]);
+						kalmanDot.setCenterX(kalmanPos.getX());
+						kalmanDot.setCenterY(kalmanPos.getY());
 						kalmanTrail.push(kalmanPos);
 						
 						kalmanfilter.predict();
@@ -742,6 +760,8 @@ public class MainWindow extends Application {
 						kalmanPredict.setEndX(predict[0]);
 						kalmanPredict.setEndY(predict[1]);
 					}
+					measureFrameCount = 0;
+					measureTimeFactorAccum = 0.0;
 					
 				}
 			}
@@ -755,8 +775,10 @@ public class MainWindow extends Application {
 		File[] names = profilesFolder.listFiles((dir,name)->{
 			return name.endsWith(".json");
 		});
-		for(File f : names) {
-			configurations.add(f.getName().substring(0, f.getName().length()-5));
+		if(names != null && names.length>0) {
+			for(File f : names) {
+				configurations.add(f.getName().substring(0, f.getName().length()-5));
+			}
 		}
 		
 		Application.launch(args);
