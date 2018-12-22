@@ -23,6 +23,7 @@ import filter.GHFilter;
 import filter.TrailRenderer;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
@@ -32,7 +33,10 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -72,6 +76,7 @@ import javafx.stage.Stage;
  *
  */
 public class MainWindow extends Application {
+	private static File profilesFolder = new File("FlockingProfiles");
 	/**
 	 * Global data model
 	 */
@@ -110,6 +115,8 @@ public class MainWindow extends Application {
 	public static Rectangle2D borderArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
 	/** The Area out of which Boids aren't painted anymore */
 	public static Rectangle2D finalArea = new Rectangle2D(0.0, 0.0, 500.0, 500.0);
+
+	private static boolean flockingFileWarning = false;
 	
 	// Filtering
 	private GHFilter ghfilter;
@@ -180,6 +187,18 @@ public class MainWindow extends Application {
 	
 	@Override
 	public void start(Stage primaryStage) throws Exception {
+		if(flockingFileWarning) {
+			Alert alert = new Alert(AlertType.ERROR, 
+					"A file called 'FlockingProfiles' has been found in this"
+					+ " application's folder. As this is the folder for the "
+					+ "profiles of the application, please remove the file.",
+					ButtonType.OK);
+			alert.showAndWait();
+			Platform.exit();
+			return;
+		}
+		
+		
 		ghfilter = new GHFilter(2);
 		kalmanfilter = new KalmanFilter(kalmanProcessModel, kalmanMeasurementModel);
 		
@@ -210,6 +229,7 @@ public class MainWindow extends Application {
 		visualSetup();
 		
 		primaryStage.setScene(new Scene(root));
+		primaryStage.setTitle("Flocking 0.0.1");
 		primaryStage.show();
 		
 		startAnimation();
@@ -223,13 +243,12 @@ public class MainWindow extends Application {
 			if(confChooser.getValue().equals("<configuration>") || confChooser.getValue().isEmpty()) return;
 			
 			ObjectMapper mapper = new ObjectMapper();
-			File folder = new File("profiles");
-			if(!folder.exists()) {
-				folder.mkdirs();
-			} else if(!folder.isDirectory()) {
+			if(!profilesFolder.exists()) {
+				profilesFolder.mkdirs();
+			} else if(!profilesFolder.isDirectory()) {
 				return;
 			}
-			File f = new File("profiles/"+confChooser.getValue()+".json");
+			File f = new File(profilesFolder,confChooser.getValue()+".json");
 			try {
 				f.createNewFile();
 				mapper.writerWithDefaultPrettyPrinter().writeValue(f, data);
@@ -249,7 +268,7 @@ public class MainWindow extends Application {
 			if(confChooser.getItems().contains(choice)) {
 				confChooser.getItems().remove(choice);
 			}
-			File f = new File("profiles/"+choice+".json");
+			File f = new File(profilesFolder,choice+".json");
 			if(f.exists()) {
 				f.delete();
 			}
@@ -261,7 +280,7 @@ public class MainWindow extends Application {
 		confChooser.setPrefWidth(200.0);
 		confChooser.setEditable(true);
 		confChooser.valueProperty().addListener((c,o,n)-> {
-			File f = new File("profiles/"+n+".json");
+			File f = new File(profilesFolder,n+".json");
 			if(f.exists()) {
 				ObjectMapper mapper = new ObjectMapper();
 				try {
@@ -511,9 +530,6 @@ public class MainWindow extends Application {
 		comboGHMode.valueProperty().bindBidirectional(data.gh_modeProperty());
 		filterMenu.add(comboGHMode, 0, row++);
 		
-		Label ghstatus = new Label();
-		//ghstatus.textProperty().bindBidirectional(ghfilter.status);
-		//filterMenu.add(ghstatus, 0, row++);
 		filterMenu.add(new Label("g:"), 0, row++);
 		Slider slFilterG = new Slider(0.0, 1.0, 0.1);
 		slFilterG.setPrefWidth(menuWidth);
@@ -771,15 +787,23 @@ public class MainWindow extends Application {
 	
 	public static void main(String[] args) throws IOException {
 		// Read existing profiles
-		File profilesFolder = new File("profiles");
-		File[] names = profilesFolder.listFiles((dir,name)->{
-			return name.endsWith(".json");
-		});
-		if(names != null && names.length>0) {
-			for(File f : names) {
-				configurations.add(f.getName().substring(0, f.getName().length()-5));
+		if(profilesFolder.exists()) {
+			if(profilesFolder.isDirectory()) {
+				File[] names = profilesFolder.listFiles((dir,name)->{
+					return name.endsWith(".json");
+				});
+				if(names != null && names.length>0) {
+					for(File f : names) {
+						configurations.add(f.getName().substring(0, f.getName().length()-5));
+					}
+				}
+			} else {
+				flockingFileWarning  = true;
 			}
+		} else {
+			profilesFolder.mkdir();
 		}
+		
 		
 		Application.launch(args);
 	}
